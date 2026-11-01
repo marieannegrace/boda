@@ -1,40 +1,40 @@
 {
-  "status": "pending",
-  "siteUrl": null,
+  "status": "decoded-and-verified",
+  "siteUrl": "https://marieannegrace.github.io/boda",
   "entries": [
     {
       "slug": "roberto",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/roberto/",
       "svg": "qr-roberto.svg",
       "png": "qr-roberto.png"
     },
     {
       "slug": "mariayroberto",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/mariayroberto/",
       "svg": "qr-mariayroberto.svg",
       "png": "qr-mariayroberto.png"
     },
     {
       "slug": "giovanna",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/giovanna/",
       "svg": "qr-giovanna.svg",
       "png": "qr-giovanna.png"
     },
     {
       "slug": "amparoyeduardo",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/amparoyeduardo/",
       "svg": "qr-amparoyeduardo.svg",
       "png": "qr-amparoyeduardo.png"
     },
     {
       "slug": "mercedes",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/mercedes/",
       "svg": "qr-mercedes.svg",
       "png": "qr-mercedes.png"
     },
     {
       "slug": "florisyabsalon",
-      "url": null,
+      "url": "https://marieannegrace.github.io/boda/florisyabsalon/",
       "svg": "qr-florisyabsalon.svg",
       "png": "qr-florisyabsalon.png"
     }
