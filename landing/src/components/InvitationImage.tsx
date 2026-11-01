@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
+import { assetPath } from "@/lib/asset-path";
 import styles from "./Experience.module.css";
 
 export default function InvitationImage() {
@@ -14,7 +15,7 @@ export default function InvitationImage() {
   return (
     <>
       <figure className={styles.facsimile} data-facsimile>
-        <Image src="/invitation/invitation.webp" alt="Invitación original de Luis y Marie con composición botánica, fecha del 7 de diciembre y Puerto Velero."
+        <Image src={assetPath("/invitation/invitation.webp")} alt="Invitación original de Luis y Marie con composición botánica, fecha del 7 de diciembre y Puerto Velero."
           width={1600} height={2523} sizes="(min-width: 960px) 480px, (min-width: 640px) 480px, calc(100vw - 64px)" />
         <figcaption>La invitación original, conservada como una pieza completa.</figcaption>
       </figure>
@@ -26,7 +27,7 @@ export default function InvitationImage() {
           <h2 id="invitation-dialog-title">La invitación</h2>
           <button onClick={close}>Cerrar</button>
         </div>
-        <Image src="/invitation/invitation.webp" alt="Facsímil ampliado de la invitación de Luis y Marie."
+        <Image src={assetPath("/invitation/invitation.webp")} alt="Facsímil ampliado de la invitación de Luis y Marie."
           width={1600} height={2523} sizes="(min-width: 960px) 900px, 100vw" />
       </dialog>
     </>

@@ -15,8 +15,8 @@ export interface EntryLetter {
   location: string;
 }
 
-export default function InvitationGate({ letter, initialOpened, children }: {
-  letter: EntryLetter; initialOpened: boolean; children: React.ReactNode;
+export default function InvitationGate({ letter, initialOpened, readingUrl, children }: {
+  letter: EntryLetter; initialOpened: boolean; readingUrl: string; children: React.ReactNode;
 }) {
   const [opened, setOpened] = useState(initialOpened);
   const root = useRef<HTMLDivElement>(null);
@@ -53,7 +53,7 @@ export default function InvitationGate({ letter, initialOpened, children }: {
   return (
     <div ref={root} role={opened ? undefined : "main"} className={opened ? undefined : styles.lockedGate} data-entry-state={opened ? "opened" : "locked"}>
       <section id="carta" data-scene="carta" className={`${styles.hero} ${styles.entryHero}`} aria-label="Carta cerrada">
-        <LetterOpening {...letter} initialOpened={initialOpened} onOpened={() => setOpened(true)} />
+        <LetterOpening {...letter} initialOpened={initialOpened} readingUrl={readingUrl} onOpened={() => setOpened(true)} />
       </section>
       <ScrollMotion active={opened}>
         <div hidden={!opened} inert={!opened} data-letter-content>{children}</div>

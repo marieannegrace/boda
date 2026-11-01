@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { getGuestUrl, getSiteUrl } from "../src/lib/site-url.mjs";
+import { verifyQr } from "../scripts/verify-qr.mjs";
 
 const base = process.env.BETA_URL ?? "http://127.0.0.1:3000";
 const guests = JSON.parse(await readFile(new URL("../src/data/guests.json", import.meta.url), "utf8"));
@@ -65,37 +67,44 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     for (const other of Object.values(guests).filter((item) => item.slug !== guest.slug && item.video)) {
       assert.ok(!html.includes(other.video), `No other guest video should be serialized: ${other.slug}`);
     }
-    const qr = await fetch(`${base}/${guest.slug}/qr/svg`);
+    const qr = await fetch(`${base}/qr/qr-${guest.slug}.svg`);
     if (!process.env.NEXT_PUBLIC_SITE_URL) {
-      assert.equal(qr.status, 503);
-      assert.match((await qr.json()).error, /URL pública pendiente/);
+      assert.equal(qr.status, 404);
     } else {
       assert.equal(qr.status, 200);
       assert.match(qr.headers.get("content-type"), /image\/svg/);
+      const url = getGuestUrl(getSiteUrl(), guest.slug);
+      assert.equal(await verifyQr(Buffer.from(await qr.arrayBuffer()), url), url);
+      const png = await fetch(`${base}/qr/qr-${guest.slug}.png`);
+      assert.equal(png.status, 200);
+      assert.equal(await verifyQr(Buffer.from(await png.arrayBuffer()), url), url);
     }
   });
 }
 
 test("explicit no-JS form submission opens the content without a script dependency", async () => {
-  const html = await (await fetch(`${base}/roberto?open=1`)).text();
+  const html = await (await fetch(`${base}/roberto/lectura/`)).text();
   const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   assert.match(markup, /data-entry-state="opened"/);
   assert.doesNotMatch(markup, /hidden="" inert="" data-letter-content/);
 });
 
-test("QR routes never use the general guest fallback", async () => {
-  assert.equal((await fetch(`${base}/sin-asignar/qr/svg`)).status, 404);
-  assert.equal((await fetch(`${base}/roberto/qr/pdf`)).status, 404);
+test("QR files never use the general guest fallback", async () => {
+  assert.equal((await fetch(`${base}/qr/qr-sin-asignar.svg`)).status, 404);
+  assert.equal((await fetch(`${base}/qr/qr-roberto.pdf`)).status, 404);
 });
 
-test("general and unknown valid slugs never receive Roberto's media", async () => {
-  for (const route of ["/", "/sin-asignar"]) {
+test("general invitation contains no guest media and unknown slugs return the general 404", async () => {
+  for (const route of ["/"]) {
     const response = await fetch(`${base}${route}`);
     assert.equal(response.status, 200);
     const html = await response.text();
     assert.match(html, /Querida familia/);
     assert.doesNotMatch(html, /\/videos\/roberto\.mp4/);
   }
+  const response = await fetch(`${base}/sin-asignar/`);
+  assert.equal(response.status, 404);
+  assert.match(await response.text(), /Puedes volver a la invitación general/);
 });
 
 test("unsupported nested routes are 404, and the facsimile derivative is served", async () => {

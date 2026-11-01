@@ -5,6 +5,7 @@ import GuestVideo from "./GuestVideo";
 import InvitationImage from "./InvitationImage";
 import InvitationGate from "./InvitationGate";
 import { getSiteUrl, getGuestUrl } from "@/lib/site-url.mjs";
+import { assetPath } from "@/lib/asset-path";
 import ChapterNavigation from "./ChapterNavigation";
 import styles from "./Experience.module.css";
 
@@ -25,7 +26,8 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
   const locationSearch = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location.name}, ${event.location.region}`)}`;
 
   return (
-    <InvitationGate key={guest.slug} initialOpened={initialOpened} letter={{
+    <InvitationGate key={guest.slug} initialOpened={initialOpened}
+      readingUrl={assetPath(guest.slug === "default" ? "/lectura/#saludo" : `/${guest.slug}/lectura/#saludo`)} letter={{
       couple: event.couple, date: event.dateEditorial, recipient: guest.displayName, greeting: guest.greeting,
       seatsLabel, note: event.letter.openingNote, location: `${event.location.name}, ${event.location.region}`,
     }}>
@@ -76,7 +78,7 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
                 <p>{chapter.text}</p>
                 {chapter.photo ? (
                   <div className={styles.memoryPhoto}>
-                    <Image src={chapter.photo} alt={`Recuerdo de Luis y Marie, ${chapter.year}`} fill
+                    <Image src={assetPath(chapter.photo)} alt={`Recuerdo de Luis y Marie, ${chapter.year}`} fill
                       sizes="(min-width: 960px) 480px, calc(100vw - 40px)" />
                   </div>
                 ) : null}
@@ -140,7 +142,7 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
           </div>
           {event.location.photo ? (
             <div className={styles.locationPhoto}>
-              <Image src={event.location.photo} alt="Puerto Velero, lugar del encuentro" fill
+              <Image src={assetPath(event.location.photo)} alt="Puerto Velero, lugar del encuentro" fill
                 sizes="(min-width: 960px) 1120px, calc(100vw - 40px)" />
             </div>
           ) : null}
@@ -186,12 +188,12 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
               <summary>El enlace de tu carta</summary>
               {publicUrl ? (
                 <div className={styles.qrContent}>
-                  <Image src={`/${guest.slug}/qr/png`} alt={`QR de la carta para ${guest.displayName}`}
+                  <Image src={assetPath(`/qr/qr-${guest.slug}.png`)} alt={`QR de la carta para ${guest.displayName}`}
                     width={256} height={256} unoptimized />
                   <a href={publicUrl}>{publicUrl}</a>
                   <div className={styles.closingLinks}>
-                    <a href={`/${guest.slug}/qr/svg`} download={`qr-${guest.slug}.svg`}>Descargar SVG</a>
-                    <a href={`/${guest.slug}/qr/png`} download={`qr-${guest.slug}.png`}>Descargar PNG</a>
+                    <a href={assetPath(`/qr/qr-${guest.slug}.svg`)} download={`qr-${guest.slug}.svg`}>Descargar SVG</a>
+                    <a href={assetPath(`/qr/qr-${guest.slug}.png`)} download={`qr-${guest.slug}.png`}>Descargar PNG</a>
                   </div>
                 </div>
               ) : <p className={styles.editorNote}>El enlace público y su QR están pendientes de configurar. No se ha generado un código de impresión con una dirección provisional.</p>}

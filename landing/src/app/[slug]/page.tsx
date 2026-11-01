@@ -1,15 +1,18 @@
 import { notFound } from "next/navigation";
 import Experience from "@/components/Experience";
-import { getGuest, hasVideo } from "@/lib/guests.server";
+import { getExactGuest, getGuestSlugs, hasVideo } from "@/lib/guests.server";
 
-export const dynamic = "force-dynamic";
+export const dynamicParams = false;
 
-export default async function GuestPage({ params, searchParams }: {
-  params: Promise<{ slug: string }>; searchParams: Promise<{ open?: string }>;
+export function generateStaticParams() {
+  return getGuestSlugs().map((slug) => ({ slug }));
+}
+
+export default async function GuestPage({ params }: {
+  params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const guest = getGuest(slug);
+  const guest = getExactGuest(slug);
   if (!guest) notFound();
-  const { open } = await searchParams;
-  return <Experience guest={guest} videoAvailable={await hasVideo(guest)} initialOpened={open === "1"} />;
+  return <Experience guest={guest} videoAvailable={await hasVideo(guest)} />;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Guest } from "@/lib/guests.server";
+import { assetPath } from "@/lib/asset-path";
 import styles from "./Experience.module.css";
 
 type Status = "idle" | "loading" | "playing" | "paused" | "ended" | "error";
@@ -34,7 +35,7 @@ export default function GuestVideo({ guest, available, placeholder }: {
     }
     setError("");
     setStatus("loading");
-    player.src = guest.video;
+    player.src = assetPath(guest.video);
     player.load();
     try {
       await player.play();
@@ -49,14 +50,14 @@ export default function GuestVideo({ guest, available, placeholder }: {
       {available ? (
         <>
           <div className={styles.videoFrame} style={{ aspectRatio: ratio }}>
-            <video ref={video} controls playsInline preload="none" poster={guest.poster ?? undefined}
+            <video ref={video} controls playsInline preload="none" poster={guest.poster ? assetPath(guest.poster) : undefined}
               aria-label={`Mensaje de Luis y Marie para ${guest.displayName}`}
               onWaiting={() => setStatus("loading")}
               onPlaying={() => { setStatus("playing"); setError(""); }}
               onPause={() => setStatus((previous) => previous === "error" || previous === "ended" ? previous : "paused")}
               onEnded={() => setStatus("ended")}
               onError={() => failed("El video no pudo cargarse. Reintenta o continúa con nuestra historia.")}>
-              {guest.captions ? <track kind="captions" src={guest.captions} srcLang="es" label="Español" default /> : null}
+              {guest.captions ? <track kind="captions" src={assetPath(guest.captions)} srcLang="es" label="Español" default /> : null}
             </video>
           </div>
           <button className={styles.button} onClick={play}>

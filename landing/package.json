@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
+    "prebuild": "node scripts/generate-qr.mjs",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1",
+    "start": "node scripts/serve-static.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "assets": "node scripts/prepare-invitation.mjs",

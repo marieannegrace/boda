@@ -3,6 +3,7 @@ import guests from "../../src/data/guests.json";
 
 const recipients = Object.values(guests).filter((guest) => guest.slug !== "default");
 const widths = [320, 390, 768, 1440];
+const route = (pathname: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${pathname}`;
 
 for (const guest of recipients) {
   for (const width of widths) {
@@ -13,7 +14,7 @@ for (const guest of recipients) {
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
       page.on("request", (request) => { if (/\.mp4(?:$|\?)/.test(request.url())) media.push(request.url()); });
-      await page.goto(`/${guest.slug}#confirmacion`);
+      await page.goto(route(`/${guest.slug}/#confirmacion`));
       const gate = page.locator("[data-entry-state]");
       const button = page.getByRole("button", { name: "Abrir la carta", exact: true });
       await expect(gate).toHaveAttribute("data-entry-state", "locked");
@@ -61,14 +62,14 @@ for (const guest of recipients) {
 test("reduced motion opens immediately and a live preference change releases the gate", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/mariayroberto");
+  await page.goto(route("/mariayroberto/"));
   const start = Date.now();
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await expect(page.locator("[data-entry-state]")).toHaveAttribute("data-entry-state", "opened", { timeout: 1000 });
   expect(Date.now() - start).toBeLessThan(1000);
   expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/roberto");
+  await page.goto(route("/roberto/"));
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("[data-entry-state]")).toHaveAttribute("data-entry-state", "opened", { timeout: 1500 });
@@ -76,7 +77,7 @@ test("reduced motion opens immediately and a live preference change releases the
 
 test("Escape and the skip control release the complete opening, not just its first stage", async ({ page }) => {
   for (const viaButton of [false, true]) {
-    await page.goto("/florisyabsalon");
+    await page.goto(route("/florisyabsalon/"));
     await page.getByRole("button", { name: "Abrir la carta" }).click();
     if (viaButton) await page.getByRole("button", { name: "Continuar sin animación" }).click();
     else await page.keyboard.press("Escape");
@@ -92,7 +93,7 @@ test("no JavaScript still requires an explicit opening gesture and reveals the l
     await page.goto(`${test.info().project.use.baseURL}/giovanna`);
     await expect(page.locator("#saludo")).not.toBeVisible();
     await page.getByRole("button", { name: "Abrir la carta" }).click();
-    await expect(page).toHaveURL(/giovanna\?open=1#saludo$/);
+    await expect(page).toHaveURL(/giovanna\/lectura\/(?:\?)?#saludo$/);
     await expect(page.locator("#saludo")).toBeVisible();
     await expect(page.locator("#saludo-heading")).toHaveText("Queridos Giovanna y Noah,");
   } finally {
@@ -103,7 +104,7 @@ test("no JavaScript still requires an explicit opening gesture and reveals the l
 test("360/430px and short landscape keep the CTA accessible; expanded invitation returns focus", async ({ page }) => {
   for (const [width, height] of [[360, 640], [430, 932], [740, 360]]) {
     await page.setViewportSize({ width, height });
-    await page.goto("/florisyabsalon");
+    await page.goto(route("/florisyabsalon/"));
     const button = page.getByRole("button", { name: "Abrir la carta" });
     await button.scrollIntoViewIfNeeded();
     await expect(button).toBeInViewport();
@@ -120,18 +121,20 @@ test("360/430px and short landscape keep the CTA accessible; expanded invitation
   await expect(enlarge).toBeFocused();
 });
 
-test("unknown slug preserves general fallback; unsupported route is 404", async ({ page }) => {
+test("unknown slug offers general fallback; unsupported route is 404", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/sin-asignar");
+  const missing = await page.goto(route("/sin-asignar/"));
+  expect(missing?.status()).toBe(404);
+  await page.getByRole("link", { name: "Abrir la invitación", exact: true }).click();
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await expect(page.locator("#saludo-heading")).toHaveText("Querida familia,");
-  const response = await page.goto("/roberto/no-existe");
+  const response = await page.goto(route("/roberto/no-existe"));
   expect(response?.status()).toBe(404);
 });
 
 test("visual review of closed paper, unfolding and personalized greeting", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/florisyabsalon");
+  await page.goto(route("/florisyabsalon/"));
   await page.screenshot({ path: testInfo.outputPath("entry-390.png") });
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await expect(page.locator("[data-opening-phase]")).toHaveAttribute("data-opening-phase", "unfolding");
@@ -167,7 +170,7 @@ test("touch entry blocks the document and restores native mobile scrolling", asy
 
 test("desktop smooth scrolling starts only after entry and is removed on live reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/amparoyeduardo");
+  await page.goto(route("/amparoyeduardo/"));
   expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await page.getByRole("button", { name: "Continuar sin animación" }).click();

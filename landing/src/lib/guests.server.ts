@@ -21,6 +21,10 @@ export interface Guest {
 
 const guests: Record<string, Guest> = records;
 
+export function getGuestSlugs() {
+  return Object.keys(guests).filter((slug) => slug !== "default");
+}
+
 function validateGuest(guest: Guest, key: string) {
   if (guest.slug !== key || !/^[a-z0-9-]+$/.test(key)) {
     throw new Error(`Invalid guest slug in configuration: ${key}`);

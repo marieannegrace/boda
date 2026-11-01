@@ -10,8 +10,8 @@ import styles from "./Experience.module.css";
 
 gsap.registerPlugin(useGSAP, Flip);
 
-export default function LetterOpening({ couple, date, recipient, greeting, seatsLabel, note, location, initialOpened, onOpened }: EntryLetter & {
-  initialOpened: boolean; onOpened: () => void;
+export default function LetterOpening({ couple, date, recipient, greeting, seatsLabel, note, location, initialOpened, readingUrl, onOpened }: EntryLetter & {
+  initialOpened: boolean; readingUrl: string; onOpened: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const envelope = useRef<HTMLDivElement>(null);
@@ -142,8 +142,7 @@ export default function LetterOpening({ couple, date, recipient, greeting, seats
       </div>
       <div className={styles.openActions}>
         {phase === "opened" ? <a className={styles.button} href="#saludo">Leer la carta</a> : (
-          <form method="get" action="#saludo" onSubmit={(event) => { event.preventDefault(); contextSafe(open)(); }}>
-            <input type="hidden" name="open" value="1" />
+          <form method="get" action={readingUrl} onSubmit={(event) => { event.preventDefault(); contextSafe(open)(); }}>
             <button ref={button} className={`${styles.button} ${styles.openButton}`} type="submit">
               {phase === "closed" ? "Abrir la carta" : "Continuar sin animación"}
             </button>
