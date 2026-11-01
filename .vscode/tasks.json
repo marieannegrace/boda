@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Preparar PDF carta",
+			"type": "shell",
+			"command": "& ([scriptblock]::Create((Get-Content -LiteralPath './Preparar-Impresion.ps1' -Raw -Encoding UTF8).Replace('$PSScriptRoot', (\"'\" + (Get-Location).Path.Replace(\"'\", \"''\") + \"'\"))))",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Generar y verificar invitaciones",
+			"type": "shell",
+			"command": "& ([scriptblock]::Create((Get-Content ./Preparar-Impresion.ps1 -Raw -Encoding UTF8)))",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verificar PDF final y calidad",
+			"type": "shell",
+			"command": "& ([scriptblock]::Create((Get-Content ./Preparar-Impresion.ps1 -Raw -Encoding UTF8)))",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Skills: inspeccionar fuentes seleccionadas",
+			"type": "shell",
+			"command": "& ([scriptblock]::Create((Get-Content ./.github/skill-tools/Manage-Skills.ps1 -Raw -Encoding UTF8))) -Mode Inspect",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Skills: verificacion final",
+			"type": "shell",
+			"command": "& ([scriptblock]::Create((Get-Content ./.github/skill-tools/Manage-Skills.ps1 -Raw -Encoding UTF8))) -Mode Verify",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
