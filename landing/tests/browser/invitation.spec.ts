@@ -19,7 +19,7 @@ for (const guest of recipients) {
       const button = page.getByRole("button", { name: "Abrir la carta", exact: true });
       await expect(gate).toHaveAttribute("data-entry-state", "locked");
       await expect(button).toBeInViewport();
-      await expect(page.getByText(`Para ${guest.displayName}`, { exact: true })).toBeVisible();
+      await expect(page.locator("#carta").getByText(`Para ${guest.displayName}`, { exact: true })).toBeVisible();
       await expect(page.locator("[data-seats]")).toHaveText(`Cupos: ${guest.seats ?? guest.seatsPendingLabel}`);
       await expect(page.locator("[data-letter-content]")).toHaveAttribute("inert", "");
       await expect(page.locator("#saludo")).not.toBeVisible();

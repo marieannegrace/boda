@@ -64,6 +64,45 @@ Reduced motion: el gesto abre inmediatamente, sin pliegues/Flip. El cambio de pr
 
 Sin JavaScript, el mismo botón funciona como formulario GET explícito a `/{slug}/lectura/#saludo`: el HTML estático contiene la carta abierta. No existe un preloader que requiera JavaScript para revelar HTML. Esa variante es un fallback de lectura, no autenticación. Una visita normal/refresco a `/slug/` vuelve a la carta cerrada.
 
+## The Love Issue — stories personalizadas
+
+La escena `#video` ya no es un reproductor tradicional: `LoveIssue.tsx` presenta seis páginas 9:16 como una edición coleccionable. Conserva el identificador del capítulo y las otras catorce escenas para no romper enlaces existentes.
+
+| Story | Función | Medio actual |
+| --- | --- | --- |
+| Portada | THE LOVE ISSUE → Special Wedding Edition → volumen/lugar/año | Tipografía y papel CSS |
+| Historia | La memoria compartida con el destinatario | Frases animadas |
+| Family Edition | Dedicar la edición y mostrar cupos | Datos del invitado actual |
+| Una nueva página | Mostrar a Luis y Marie y preparar el encuentro | Fotografía pendiente, sin stock |
+| Mensaje personal | Luis y Marie hablan directamente | Video pendiente; arquitectura personalizada/general |
+| El encuentro | Fecha, lugar, hashtag, invitación y compartir | Portada final y acciones |
+
+**Abrir mi edición** inicia la secuencia, nunca la carga de la landing. Cada página tipográfica tiene 5 s: 30 s nominales, sin bucle. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración y avanza en `ended`, sin cortar la voz a los 5 s; si dura más, el recap también dura más.
+
+Toques a izquierda/derecha, swipe horizontal y botones anterior/siguiente recorren las páginas. Mantener presionado pausa texto, progreso y video; soltar reanuda. El scroll vertical sigue siendo nativo en móvil. Flechas del teclado navegan, espacio pausa/continúa, los controles tienen foco visible y no hay trampa de Tab. Avance automático es opcional; se pausa fuera de pantalla, con pestaña oculta, al mantener presionado o cuando el teclado está dentro de los controles. Reduced motion desactiva autoplay/animación y deja navegación y video bajo gesto explícito. Sin JS se muestra una edición completa de lectura, no controles inertes.
+
+Pantalla completa usa la API nativa, incluye controles y acciones finales y permite salir con Escape/el mismo botón. Si el navegador no la admite, informa y conserva la experiencia inline. **Ver la invitación** devuelve foco y scroll al facsímil/agenda. Compartir usa Web Share con la URL del invitado, no una ruta genérica; alternativas: WhatsApp, copiar enlace y campo seleccionable. Cancelar el menú no es un error; copiar/compartir fallidos muestran instrucciones, no una confirmación ficticia.
+
+### Configurar contenido y medios
+
+- `src/data/stories.json`: textos compartidos, orden, tiempos, edición, foto general y `generalVideo/generalPoster/generalCaptions/generalTranscript`. Están en `null` hasta recibir medios reales.
+- `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `poster`, `captions`, `transcript`. No crear un segundo listado de familias.
+- Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza el texto del espacio de video pendiente. Estos overrides no obligan a modificar componentes.
+- Archivos locales: `/videos/nombre.mp4`, `/videos/nombre.vtt`, `/images/nombre.webp` (también PNG/JPG). Publicar MP4 vertical 9:16, comprimido, fast-start, poster y subtítulos/transcripción revisados.
+- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → placeholder. No mezclan poster/captions/transcript de otra familia. Foto personalizada → configuración general; si el archivo no existe, queda el espacio editorial. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- El cliente recibe solo la edición actual. El video no se monta ni tiene `src` antes de la quinta página/inicio explícito; usa preload none, muted, playsInline, sonido y play/pausa discretos. Pausa/libera el recurso al salir y ofrece reintento/continuación ante fallos. Nunca solicita videos de otras familias.
+- No se generan ilustraciones para fingir botánica disponible. Los marcos y ornamentación actuales son tipográficos/CSS; fotografía y voz auténticas siguen pendientes. La foto real recibe un tratamiento cálido leve y escala 1.03 → 1.00, sin parallax móvil.
+
+```powershell
+npm.cmd run test:stories
+$env:BETA_URL = "http://127.0.0.1:3002/boda"
+npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts --workers=1
+```
+
+Las pruebas cubren los seis destinatarios, seis páginas, 30 s nominales, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build de fixture local: un MP4 sintético 9:16 de 7 s y poster (`tests/create-story-fixture.mjs`). Esa corrida verifica reproducción real del navegador, duración/ended, sonido, pausa, ausencia de controles grandes y fallos de video/foto. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar ambos archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+
+Validación de esta entrega: typecheck, lint y export estático aprobados; 13 smoke, 7 QR, 3 selección/configuración de stories y 47 escenarios de navegador (32 existentes + 15 nuevos) verificados. Los 4 escenarios adicionales de medios se ejecutaron con el MP4 sintético y se retiraron esos archivos del build final. Se corrigieron el swipe nativo dentro de la página con scroll, el foco al volver a la invitación, una carrera entre error de video y rechazo de autoplay, y un selector de prueba que confundía la dedicatoria del sobre con la de la portada. La evidencia no reemplaza QA en iOS/Android reales ni valida videos personales que aún no se han recibido.
+
 ## Recorrido y función narrativa
 
 | Escena | Propósito / contenido | Acción y transición | Fallback |
@@ -71,7 +110,7 @@ Sin JavaScript, el mismo botón funciona como formulario GET explícito a `/{slu
 | Carta cerrada | Identificar destinatario y cupos | Abrir, sin enlaces de bypass | Formulario nativo |
 | Apertura | Umbral físico de objeto a lectura | Solapa → papel → pliegues → destinatario | Inmediata con reduced motion; control para omitir animación |
 | Saludo | Dedicar la carta | Foco y lectura libre | Nombre y cupos en HTML |
-| Video | Mensaje personal | Reproducción explícita o continuar | Placeholder honesto si no existe |
+| The Love Issue | Edición personal en seis stories | Recap opcional, gestos y regreso a invitación | Lectura estática y placeholders de medios |
 | Historia | Pasar a memoria compartida | Pausa tipográfica y tinta | Contenido estático |
 | 2008 | Comienzo real de la relación | Primera página de memoria | Capítulo tipográfico |
 | 2022 | Boda civil | Relevo espacial | Capítulo tipográfico |

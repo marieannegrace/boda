@@ -40,6 +40,7 @@ jobs:
         run: |
           npm run lint
           npm run test:qr
+          npm run test:stories
           npm run build
           npm run typecheck
       - uses: actions/upload-pages-artifact@v3
