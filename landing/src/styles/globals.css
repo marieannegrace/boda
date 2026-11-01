@@ -1,0 +1,50 @@
+:root {
+  --paper: #f7f3ea;
+  --white: #ffffff;
+  --champagne: #e7d7b8;
+  --sage: #a9b09c;
+  --ink: #995110;
+  --charcoal: #302c27;
+  --line: #b8a58d;
+  --olive-deep: #404b40;
+  --display: var(--font-display), "Times New Roman", serif;
+  --body: var(--font-body), Georgia, serif;
+  --micro: 0.22s;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+html:has([data-entry-state="locked"]), body:has([data-entry-state="locked"]) { overflow: hidden; overscroll-behavior: none; }
+[data-letter-content][hidden] { display: none !important; }
+body { margin: 0; color: var(--charcoal); font: 400 1.0625rem/1.7 var(--body); }
+h1, h2, h3, p, figure { margin: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; line-height: 1.1; text-wrap: balance; }
+h1 { font-size: 3rem; }
+h2 { font-size: 2.75rem; }
+h3 { font-size: 2rem; }
+p { max-width: 62ch; text-wrap: pretty; }
+a { color: inherit; text-underline-offset: 0.3em; }
+button, input, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+button, summary { min-height: 48px; }
+button { color: inherit; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 5px; }
+:target, :focus { scroll-margin-top: 6rem; scroll-margin-bottom: 4rem; }
+::selection { color: var(--white); background: var(--ink); }
+img, video { max-width: 100%; }
+.systemPage { min-height: 100svh; padding: 5rem 1.5rem; display: grid; align-content: center; justify-items: start; gap: 1.5rem; }
+.systemPage h1 { max-width: 20ch; }
+.systemPage button { padding: 0.75rem 1.5rem; border: 1px solid currentColor; background: transparent; }
+@media (min-width: 960px) {
+  h1 { font-size: 4.5rem; }
+  h2 { font-size: 4rem; }
+  h3 { font-size: 2.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation: none !important; }
+}
+@media (forced-colors: active) {
+  button, summary { border: 1px solid ButtonText; }
+}

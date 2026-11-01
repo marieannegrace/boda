@@ -1,0 +1,42 @@
+{
+  "status": "pending",
+  "siteUrl": null,
+  "entries": [
+    {
+      "slug": "roberto",
+      "url": null,
+      "svg": "qr-roberto.svg",
+      "png": "qr-roberto.png"
+    },
+    {
+      "slug": "mariayroberto",
+      "url": null,
+      "svg": "qr-mariayroberto.svg",
+      "png": "qr-mariayroberto.png"
+    },
+    {
+      "slug": "giovanna",
+      "url": null,
+      "svg": "qr-giovanna.svg",
+      "png": "qr-giovanna.png"
+    },
+    {
+      "slug": "amparoyeduardo",
+      "url": null,
+      "svg": "qr-amparoyeduardo.svg",
+      "png": "qr-amparoyeduardo.png"
+    },
+    {
+      "slug": "mercedes",
+      "url": null,
+      "svg": "qr-mercedes.svg",
+      "png": "qr-mercedes.png"
+    },
+    {
+      "slug": "florisyabsalon",
+      "url": null,
+      "svg": "qr-florisyabsalon.svg",
+      "png": "qr-florisyabsalon.png"
+    }
+  ]
+}

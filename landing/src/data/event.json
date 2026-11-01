@@ -1,0 +1,92 @@
+{
+  "stage": "V1",
+  "couple": "Luis & Marie",
+  "date": "2026-12-07",
+  "dateLabel": "7 de diciembre de 2026",
+  "dayLabel": "Lunes, 7 de diciembre",
+  "dateEditorial": "07 · XII · 2026",
+  "timezone": "America/Bogota",
+  "location": {
+    "name": "Puerto Velero",
+    "region": "Atlántico, Colombia",
+    "exactMapUrl": null,
+    "photo": null,
+    "provisional": true
+  },
+  "letter": {
+    "intro": "Hay personas que forman parte de nuestra vida no solamente por los años compartidos, sino por el significado que dejan en ellos.",
+    "dedication": "Por eso esta carta es para ustedes.",
+    "openingNote": "Hay una historia dentro de esta carta. Y un lugar en ella para ustedes.",
+    "videoTitle": "Antes de continuar, queremos decirte algo personalmente.",
+    "videoPlaceholder": "El mensaje en video para ustedes será incorporado posteriormente.",
+    "historyIntro": "El tiempo se cuenta en años. Una vida compartida, en todo lo que hemos construido juntos.",
+    "invitation": "Queremos vivir este capítulo con ustedes.",
+    "confirmation": "Hemos reservado este día pensando también en ustedes.",
+    "closing": ["Algunas fechas pasan.", "Algunas permanecen."]
+  },
+  "story": [
+    {
+      "year": "2008",
+      "title": "El comienzo",
+      "text": "Nuestra historia comenzó en 2008, cuando decidimos emprender juntos este increíble viaje llamado vida.",
+      "footnote": "Comienzo de nuestra relación",
+      "photo": null
+    },
+    {
+      "year": "2022",
+      "title": "Un compromiso",
+      "text": "En 2022, sellamos nuestro compromiso con nuestra boda civil, marcando un nuevo capítulo de nuestra relación.",
+      "footnote": "Nuestra boda civil",
+      "photo": null
+    },
+    {
+      "year": "2026",
+      "title": "Un nuevo capítulo",
+      "text": "Ahora, en este 2026, celebramos nuestra boda religiosa y queremos compartir nuestra alegría con las personas que más queremos.",
+      "footnote": "Nuestra boda religiosa",
+      "photo": null
+    }
+  ],
+  "agenda": [
+    { "time": "3:45 PM", "label": "Llegada de invitados", "provisional": true },
+    { "time": "4:00 PM", "label": "Ceremonia", "provisional": true },
+    { "time": "4:40 PM", "label": "Golden Hour", "provisional": true },
+    { "time": "7:00 PM", "label": "Ritual de velas", "provisional": true },
+    { "time": "8:00 PM", "label": "Recepción", "provisional": true },
+    { "time": null, "label": "Cierre de la celebración", "provisional": true }
+  ],
+  "dressCode": {
+    "title": "Blanco playero",
+    "text": "Únete a nuestra fiesta blanca luciendo tu mejor atuendo de lino o telas frescas. Queremos disfrutar del mar con la mayor comodidad.",
+    "note": "Lino · Telas frescas · Blanco",
+    "provisional": true
+  },
+  "postWedding": {
+    "date": "2026-12-08",
+    "dateLabel": "8 de diciembre de 2026",
+    "title": "La mañana después",
+    "audience": "Padres y hermanos",
+    "previewInBeta": false,
+    "provisional": true,
+    "agenda": [
+      { "time": "8:00 AM", "label": "Desayuno junto a la piscina" },
+      { "time": "8:45 AM", "label": "Fotografía familiar" },
+      { "time": "8:55 AM", "label": "Recreación en piscina" },
+      { "time": "11:00 AM", "label": "Cierre" }
+    ]
+  },
+  "rsvp": {
+    "phoneDisplay": "305 295 1053",
+    "phoneInternational": "573052951053",
+    "email": "ADMIN@METAMAGAGENCY.COM",
+    "message": "Hola, somos {guest}. Queremos confirmar nuestra asistencia a la boda de Luis & Marie el 7 de diciembre de 2026.",
+    "provisional": true
+  },
+  "provisional": {
+    "copy": true,
+    "fonts": true,
+    "guestAssignments": false,
+    "endTime": true,
+    "eventDetails": true
+  }
+}
