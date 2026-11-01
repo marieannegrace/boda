@@ -1,0 +1,16 @@
+﻿Hoja: 215.90 x 279.40 mm, vertical (612 x 792 pt).
+Copias: 2, mismo recurso de imagen y escala, centradas.
+Tamano de corte por copia: 195.00 x 123.65 mm.
+Separacion entre lineas de corte: 8.00 mm.
+Original: 6250 x 3963 pixeles. Resolucion efectiva: 814.1 DPI.
+Imagen RGB conservada pixel por pixel, compresion sin perdida, sin giro ni recorte.
+Marcas: 16 segmentos vectoriales negros de 0.25 pt, fuera de cada pieza.
+Sangrado: NO INCLUIDO. El original no aporta imagen exterior; no se han inventado ni reflejado bordes.
+Zona segura: textos centrales conservados. Las flores y hojas llegan al corte y no tienen margen seguro.
+La zona segura y la lectura del QR requieren comprobacion visual y una prueba fisica.
+Color: RGB del original, sin conversion creativa ni perfil de imprenta inventado. La fidelidad impresa depende del equipo y papel.
+Calidad: supera 300 DPI al tamano elegido; no se ha interpolado ni generado detalle.
+Imprimir: papel Carta, vertical, tamano real / 100%, una pagina por hoja. Desactivar ajustar, encoger y multipagina.
+Se necesita un area imprimible que deje margenes de aproximadamente 7 mm o menos.
+No es PDF/X ni un archivo con sangrado certificado. Es una imposicion domestica sin sangrado.
+Validacion automatica: pagina Carta, dos copias, escalas iguales, alineacion, 16 marcas e identidad de pixeles: OK.
