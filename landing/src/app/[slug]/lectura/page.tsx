@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Experience from "@/components/Experience";
-import { getExactGuest, getGuestSlugs, hasVideo } from "@/lib/guests.server";
+import { getExactGuest, getGuestSlugs } from "@/lib/guests.server";
 
 export const dynamicParams = false;
 
@@ -12,5 +12,5 @@ export default async function ReadingPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const guest = getExactGuest(slug);
   if (!guest) notFound();
-  return <Experience guest={guest} videoAvailable={await hasVideo(guest)} initialOpened />;
+  return <Experience guest={guest} initialOpened />;
 }

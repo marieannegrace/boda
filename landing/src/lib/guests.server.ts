@@ -1,6 +1,4 @@
 import "server-only";
-import { stat } from "node:fs/promises";
-import path from "node:path";
 import records from "@/data/guests.json";
 
 export interface Guest {
@@ -17,6 +15,12 @@ export interface Guest {
   videoWidth: number | null;
   videoHeight: number | null;
   postWeddingAccess: boolean | null;
+  stories?: {
+    edition?: string;
+    photo?: string | null;
+    photoAlt?: string;
+    message?: string | null;
+  };
 }
 
 const guests: Record<string, Guest> = records;
@@ -56,6 +60,13 @@ function validateGuest(guest: Guest, key: string) {
     if (dimension !== null && (!Number.isFinite(dimension) || dimension <= 0)) {
       throw new Error(`Invalid video dimensions: ${key}`);
     }
+    if (guest.stories) {
+      for (const text of [guest.stories.edition, guest.stories.photoAlt, guest.stories.message]) {
+        if (text != null && (typeof text !== "string" || !text.trim() || text.length > 500)) {
+          throw new Error(`Invalid stories text: ${key}`);
+        }
+      }
+    }
   }
 }
 
@@ -70,14 +81,4 @@ export function getGuest(slug = "default"): Guest | null {
 export function getExactGuest(slug: string): Guest | null {
   if (slug === "default" || !Object.hasOwn(guests, slug)) return null;
   return getGuest(slug);
-}
-
-export async function hasVideo(guest: Guest): Promise<boolean> {
-  if (!guest.video) return false;
-  try {
-    return (await stat(path.join(process.cwd(), "public", guest.video))).isFile();
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return false;
-    throw error;
-  }
 }

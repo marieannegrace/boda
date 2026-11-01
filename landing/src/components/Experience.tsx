@@ -1,7 +1,8 @@
 import event from "@/data/event.json";
 import Image from "next/image";
 import type { Guest } from "@/lib/guests.server";
-import GuestVideo from "./GuestVideo";
+import LoveIssue from "./LoveIssue";
+import { getStories } from "@/lib/stories.server";
 import InvitationImage from "./InvitationImage";
 import InvitationGate from "./InvitationGate";
 import { getSiteUrl, getGuestUrl } from "@/lib/site-url.mjs";
@@ -11,13 +12,14 @@ import styles from "./Experience.module.css";
 
 const chapters = [
   ["carta", "Carta cerrada"], ["apertura", "Apertura"], ["saludo", "Saludo"],
-  ["video", "Mensaje en video"], ["historia", "Nuestra historia"], ["2008", "2008"],
+  ["video", "The Love Issue"], ["historia", "Nuestra historia"], ["2008", "2008"],
   ["2022", "2022"], ["2026", "2026"], ["invitacion", "La invitación"],
   ["ceremonia", "Ceremonia"], ["dress-code", "Dress code"], ["puerto-velero", "Puerto Velero"],
   ["postboda", "8 de diciembre"], ["confirmacion", "Confirmación"], ["cierre", "Cierre"],
 ];
 
-export default function Experience({ guest, videoAvailable, initialOpened = false }: { guest: Guest; videoAvailable: boolean; initialOpened?: boolean }) {
+export default async function Experience({ guest, initialOpened = false }: { guest: Guest; initialOpened?: boolean }) {
+  const stories = await getStories(guest);
   const showPostWedding = guest.postWeddingAccess === true;
   const publicUrl = guest.slug === "default" ? null : getGuestUrl(getSiteUrl(), guest.slug);
   const seatsLabel = guest.seats === null ? guest.seatsPendingLabel ?? "Sin asignación" : String(guest.seats);
@@ -50,11 +52,7 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
         </section>
 
         <section id="video" data-scene="video" className={`${styles.scene} ${styles.videoScene}`} aria-labelledby="video-heading">
-          <div className={styles.videoIntro}>
-            <p className={styles.small}>De nuestra voz a ustedes</p>
-            <h2 id="video-heading">{event.letter.videoTitle}</h2>
-          </div>
-          <GuestVideo guest={guest} available={videoAvailable} placeholder={event.letter.videoPlaceholder} />
+          <LoveIssue content={stories} />
         </section>
 
         <section id="historia" data-scene="historia" className={`${styles.scene} ${styles.historyIntro}`} aria-labelledby="historia-heading">
@@ -91,7 +89,7 @@ export default function Experience({ guest, videoAvailable, initialOpened = fals
         <section id="invitacion" data-scene="invitacion" className={`${styles.scene} ${styles.invitationScene}`} aria-labelledby="invitacion-heading">
           <div className={styles.invitationCopy}>
             <p>El encuentro</p>
-            <h2 id="invitacion-heading">{event.letter.invitation}</h2>
+            <h2 id="invitacion-heading" tabIndex={-1}>{event.letter.invitation}</h2>
             <p className={styles.eventDate}><time dateTime={event.date}>{event.dateLabel}</time></p>
             <p>{event.location.name}, {event.location.region}</p>
             <p className={styles.small}>Llegada {event.agenda[0].time} · Ceremonia {event.agenda[1].time}</p>
