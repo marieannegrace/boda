@@ -45,13 +45,13 @@
 .publication { display: flex; gap: 2rem; justify-content: center; }
 .colophon { max-width: 30ch; text-transform: uppercase; }
 .special { letter-spacing: 0.14em; }
-.masthead { font: 400 4rem/0.8 var(--display); display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 100%; }
+.masthead { font: 400 3.25rem/0.8 var(--display); display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 100%; }
 .masthead > span:first-child { font-size: 1.375rem; line-height: 1; }
 .masthead > span:nth-child(2) { font-style: italic; font-size: 1.2em; }
 .rule { width: 5rem; height: 1px; background: currentColor; position: relative; display: block; margin-block: 0.5rem; flex-shrink: 0; }
 .rule::after { content: ""; width: 0.3rem; height: 0.3rem; transform: rotate(45deg); background: currentColor; position: absolute; top: -0.1rem; left: calc(50% - 0.15rem); }
 .coverDedication { font-style: italic; font-size: 0.9375rem; max-width: 25ch; }
-.cover { gap: 0.75rem; }
+.cover { gap: 0.5rem; }
 .coverSubtitle { font-style: italic; font-size: 0.875rem; max-width: 26ch; line-height: 1.5; }
 .page[data-story-id="history"] { background: var(--issue-champagne); }
 .history { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.875rem; min-height: 100%; padding-inline: 0.5rem; }
@@ -92,10 +92,10 @@
 .messagePhoto { position: relative; flex: 1; min-height: 10rem; width: 100%; margin: 0; }
 .photoSignature { font: 400 1.25rem/1.1 var(--display); }
 .closingBlessing { font: italic 400 1.125rem/1.3 var(--display); max-width: 23ch; }
-.topLine .musicButton { font: 400 0.625rem/1.5 var(--issue-sans); padding-inline: 0.5rem; }
+.topLine .musicButton { font: 400 0.75rem/1.4 var(--issue-sans); padding-inline: 0.5rem; text-decoration: underline; }
 .retryButton { position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%); border: 1px solid currentColor; background: var(--issue-paper); padding: 0.5rem 1rem; font-size: 0.8125rem; white-space: nowrap; }
 .videoStory { position: absolute; inset: 0; background: #302c27; color: var(--white); }
-.videoStory video { width: 100%; height: 100%; object-fit: cover; }
+.videoStory video { width: 100%; height: 100%; object-fit: contain; }
 .videoCaption { position: absolute; inset: auto 0 0; padding: 1rem; background: linear-gradient(transparent, #000b 20%); font-size: 0.8125rem; }
 .videoControls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
 .videoControls button { min-width: 44px; }
@@ -108,8 +108,7 @@
 .bottomLine { z-index: 6; background: var(--issue-paper); padding: 0.5rem 0.75rem 0.75rem; }
 .startButton { width: 100%; background: var(--issue-tobacco); color: var(--issue-paper); border: 1px solid var(--issue-tobacco); font-size: 0.875rem; min-height: 48px; }
 .navigation { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; }
-.navigation button { background: transparent; border: 0; min-width: 44px; min-height: 44px; padding: 0.25rem; font-size: 0.75rem; }
-.navigation button:first-child, .navigation button:last-child { font: 400 2rem var(--display); }
+.navigation button { background: transparent; border: 1px solid var(--issue-tobacco); min-width: 44px; min-height: 48px; padding: 0.375rem; font-size: 0.8125rem; }
 .navigation button:disabled { opacity: 0.4; }
 .navigation > span { font-size: 0.75rem; }
 .readerControls { display: grid; gap: 0.5rem; width: 100%; text-align: center; }
@@ -122,6 +121,20 @@
 .repeatButton { background: transparent; padding: 0.5rem; border: 0; text-decoration: underline; text-underline-offset: 0.3em; font-size: 0.8125rem; }
 .notice { font-size: 0.8125rem; text-align: center; }
 .notice:empty { display: none; }
+.journeyNote { font-size: 0.9375rem; max-width: 32ch; }
+.pagePosition { font: 400 0.75rem/1.4 var(--issue-sans); text-align: center; padding-top: 0.5rem; }
+.contextHelp { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; color: var(--issue-tobacco); border-top: 1px solid currentColor; margin-top: 0.5rem; }
+.contextHelp p { font: 400 0.8125rem/1.4 var(--issue-sans); }
+.helpHand { flex-shrink: 0; width: 32px; height: 40px; animation: suggestTap 0.8s ease-in-out 2; }
+@keyframes suggestTap { 50% { transform: translateY(4px); } }
+.specialIntroduction { min-height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 1.5rem; text-align: center; }
+.specialIntroduction h3 { font: 400 2rem/1.15 var(--display); }
+.specialIntroduction > p { font-size: 0.9375rem; }
+.playOverlay { position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 0.5rem; min-height: 64px; width: max-content; max-width: calc(100% - 2rem); padding: 0.75rem; border: 1px solid var(--issue-paper); background: #171512ed; color: var(--issue-paper); font-size: 0.875rem; }
+.playOverlay span { font-size: 1.5rem; }
+.readerControls .volumeControl { flex-wrap: wrap; font-size: 0.875rem; }
+.readerControls input[type="range"] { width: 8rem; height: 44px; }
+.screen .videoControls button, .videoCaption button { min-height: 48px; font-size: 0.875rem; }
 .shareOptions { display: grid; gap: 0.75rem; width: 100%; }
 .shareOptions label { display: grid; gap: 0.5rem; font-size: 0.8125rem; }
 .shareOptions input { width: 100%; padding: 0.625rem; border: 1px solid var(--issue-bronze); background: var(--issue-paper); color: var(--issue-tobacco); min-height: 44px; }
@@ -138,8 +151,11 @@
 .staticEdition .messagePhoto { flex: none; height: 20rem; }
 .staticEdition .cover, .staticEdition .family, .staticEdition .closing, .staticEdition .messageEditorial { gap: 1rem; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 389px) {
+  .phone:has([data-story-id="closing"]:not([hidden])) { aspect-ratio: auto; min-height: 40rem; }
+}
 @media (min-width: 390px) {
-  .masthead { font-size: 5rem; }
+  .masthead { font-size: 4.25rem; }
   .familyName { font-size: 2.75rem; }
   .history > p { font-size: 1.75rem; }
   .momentHeading { font-size: 2rem; }
@@ -148,6 +164,7 @@
   .issueIntro h2 { font-size: 3rem; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .helpHand { animation: none; }
   .phone { box-shadow: none; }
   .screen button, .screen a { transition: none; }
   .page, .page [data-story-reveal], .page [data-story-photo] { opacity: 1 !important; transform: none !important; letter-spacing: normal !important; }

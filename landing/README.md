@@ -74,12 +74,16 @@ La escena `#video` ya no es un reproductor tradicional: `LoveIssue.tsx` presenta
 | Historia | La memoria compartida con el destinatario | Texto inicial → todas las fotos de la edición, de una o dos → pausa tipográfica |
 | Family Edition | Dedicar la edición y mostrar cupos | Datos del invitado actual |
 | Una nueva página | Preparar el encuentro | Primer retrato global de Luis & Marie, sin recortar |
-| Mensaje personal | Luis y Marie hablan directamente | Video → segundo retrato global/foto → firma editorial si no hay medios |
+| Mensaje personal | Luis y Marie hablan directamente | Invitación → presentación neutra → segundo video si existe; foto/firma solo si no hay videos |
 | El encuentro | Gratitud, fe, esperanza y amor; datos del encuentro | Cierre tipográfico, invitación y compartir |
 
-**Abrir mi edición** inicia la secuencia, nunca la carga de la landing. Cada página tiene la duración de su segmento en `slides` (5 s actualmente). Sin fotos ni video son 30 s nominales; cada página interna de History añade su tiempo, sin límite artificial de fotos. El segundo segmento refleja el avance acumulado por esas páginas; los seis segmentos principales no cambian. Anterior/siguiente, gestos y flechas recorren primero las páginas internas y después el segmento siguiente; volver desde Family Edition recupera la última página de History. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración y avanza en `ended`, sin cortar la voz a los 5 s.
+**Abrir mi edición** inicia la secuencia y solicita la música mediante ese gesto, nunca al cargar la landing. Cada página tiene la duración de su segmento en `slides` (5 s actualmente). Sin fotos ni video son 30 s nominales; cada página interna de History añade su tiempo, sin límite artificial de fotos. El segundo segmento refleja el avance acumulado por esas páginas; los seis segmentos principales no cambian. Anterior/siguiente, gestos y flechas recorren primero las páginas internas y después el segmento siguiente; volver desde Family Edition recupera la última página de History. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración, sin cortar la voz a los 5 s.
 
-Toques a izquierda/derecha, swipe horizontal y botones anterior/siguiente recorren las páginas. Mantener presionado pausa texto, progreso y video; soltar reanuda. El scroll vertical sigue siendo nativo en móvil. Flechas del teclado navegan, espacio pausa/continúa, los controles tienen foco visible y no hay trampa de Tab. Avance automático es opcional; se pausa fuera de pantalla, con pestaña oculta, al mantener presionado o cuando el teclado está dentro de los controles. Reduced motion desactiva autoplay/animación y deja navegación y video bajo gesto explícito. Sin JS se muestra una edición completa de lectura, no controles inertes.
+History es obligatorio: introducción, todas las fotografías y pausas, sin botón para saltar. Solo al avanzar desde su última página se desbloquean las escenas posteriores de la carta, incluida agenda/confirmación. Los enlaces de capítulos y los hashes directos previos a ese momento remiten a la edición con una explicación. Es una condición de recorrido en memoria, no autenticación ni una prueba de cuánto tiempo se observó cada foto. No hay permanencia mínima obligatoria: Siguiente/Anterior siguen disponibles. Sin JavaScript se ofrece lectura lineal con todas las fotografías y los mensajes enlazados, sin controles bloqueados.
+
+Con dos videos, el primero es la invitación. Al terminarlo aparece una presentación editorial neutra; **Reproducir segundo mensaje** inicia la revelación sin anunciar previamente el cargo. Siguiente desde esa presentación también reproduce el segundo mensaje, no lo omite. Ambos ocupan páginas internas del quinto segmento y su progreso es acumulado. Nunca se montan dos videos simultáneos. Anterior permite volver al mensaje anterior; Siguiente permite cerrar uno y continuar. En modo manual, el último video terminado deja los controles disponibles hasta que el invitado decida avanzar.
+
+Toques a izquierda/derecha, swipe horizontal y botones **Anterior / Pausar / Siguiente** recorren las páginas. **Reanudar** se distingue de avanzar. Mantener presionado pausa texto, progreso y video; soltar reanuda. A los 3.5 s sin interacción aparece una única ayuda contextual con una mano SVG de dos movimientos discretos; no es un popup ni un loop permanente. Reduced motion mantiene el texto y elimina su movimiento. La ayuda no desplaza los botones dentro del marco. El scroll vertical sigue siendo nativo en móvil. Flechas del teclado navegan, espacio pausa/continúa, los controles tienen foco visible y no hay trampa de Tab. Avance automático es opcional; se pausa fuera de pantalla, con pestaña oculta, al mantener presionado o cuando el teclado está dentro de los controles. Reduced motion desactiva autoplay/animación y deja navegación y video bajo gesto explícito.
 
 Pantalla completa usa la API nativa, incluye controles y acciones finales y permite salir con Escape/el mismo botón. Si el navegador no la admite, informa y conserva la experiencia inline. **Ver la invitación** devuelve foco y scroll al facsímil/agenda. Compartir usa Web Share con la URL del invitado, no una ruta genérica; sin esa API el botón es **Copiar enlace**. Si falla, quedan WhatsApp y un campo seleccionable. Cancelar el menú no es un error; copiar/compartir fallidos muestran instrucciones, no una confirmación ficticia.
 
@@ -88,25 +92,35 @@ Pantalla completa usa la API nativa, incluye controles y acciones finales y perm
 - `src/data/stories.json`: textos compartidos, orden, tiempos, edición, foto general y `generalVideo/generalPoster/generalCaptions/generalTranscript`. Están en `null` hasta recibir medios reales.
 - `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `poster`, `captions`, `transcript`. No crear un segundo listado de familias.
 - Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza la despedida editorial. Estos overrides no obligan a modificar componentes.
-- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → fotografía disponible → firma editorial. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- `stories.server.ts`/`story-media.mjs` comprueban en build: videos del invitado → general → fotografía disponible → firma editorial. La detección reutiliza la clasificación de nombres existente, respeta mayúsculas/espacios del archivo real y permite uno o dos MP4 por edición, en orden numérico. Más de dos exige revisar el inventario y detiene el build, en lugar de omitir archivos. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
 - Si existen `captions`, el botón **CC** permite activarlos/desactivarlos. `transcript` habilita **Leer el mensaje**. Sin esos datos no aparecen los controles.
 - El cliente recibe solo la edición actual. El video no se monta ni tiene `src` antes de la quinta página/inicio explícito; usa preload none, muted, playsInline, sonido y play/pausa discretos. Pausa/libera el recurso al salir y ofrece reintento/continuación ante fallos. Nunca solicita videos de otras familias.
 - Marcos, textura y ornamentos de borde están hechos con CSS. Portada y Family Edition incluyen `VOL. 01` y `NO. 001`; los metadatos usan sans-serif y los titulares serif. El formato vertical permanece centrado en desktop. Las fotos reales reciben un tratamiento cálido leve, sin parallax móvil.
 
 ### Subir medios sin modificar componentes
 
-Las carpetas ya existen dentro de `public/`. Los 45 archivos reales recibidos en `public/posters/` se conservan byte a byte; los videos y la música definitivos todavía no están presentes.
+Las carpetas ya existen dentro de `public/`. Los 45 archivos reales recibidos en `public/posters/`, los cinco MP4 y el WEBA se conservan byte a byte. Inventario actual:
+
+| Edición | Mensaje de invitación | Segundo mensaje |
+| --- | --- | --- |
+| `/giovanna/` | `GIOVANNA.mp4` | `GIOVANNA 2.mp4` |
+| `/roberto/` | `ROBERTO.mp4` | `ROBERTO 2.mp4` |
+| `/mariayroberto/` | `ROBERTO Y MARIA.mp4` | No existe |
+| Otras tres ediciones | Sin MP4 recibido; fotografía editorial | No existe |
+
+La asignación y el significado de los archivos «2» fueron confirmados por el usuario. No se inventan los videos que faltan ni se reutiliza el de otra familia.
 
 | Carpeta física | Nombre que se detecta automáticamente | Uso |
 | --- | --- | --- |
-| `public/videos/` | `{slug}.mp4` | Mensaje de la familia correspondiente; las rutas ya están en `guests.json` |
+| `public/videos/` | `{slug}.mp4` o nombre de la persona/familia; sufijo `2` para el segundo | Uno o dos mensajes consecutivos; mayúsculas y espacios admitidos |
 | `public/posters/` | `{slug}.jpg` | Poster del video personal, salvo override explícito |
 | `public/posters/` | Nombres de personas/familias, incluso espacios y extensión JPG/JPEG/PNG/WebP | Todas las fotos de History de su edición |
 | `public/images/` | `{slug}.jpg` | Foto de la edición personal |
 | `public/images/` | `luis-marie.jpg` | Foto compartida si no hay foto personal |
 | `public/images/` | `history.jpg` | Foto secundaria de la segunda story |
 | `public/images/` | `cover.jpg` | Última alternativa de foto compartida |
-| `public/audio/` | `the-love-issue.mp3` | Música ambiental global opcional |
+| `public/audio/` | `videoplayback.weba` | Música global actual, seleccionada en `stories.json` |
+| `public/audio/` | `the-love-issue.mp3` | Alternativa opcional para navegadores sin WEBA/Opus |
 
 Ejemplo: subir `public/videos/mariayroberto.mp4` y opcionalmente `public/posters/mariayroberto.jpg`; después del build aparecerán automáticamente en `/mariayroberto/`. No copiar los JSON de invitados. En Pages hace falta **commit/push a `main`** para ejecutar el build y publicar los archivos: no hay detección de archivos nuevos en el sitio ya exportado.
 
@@ -145,9 +159,13 @@ Sin override, horizontales usan `memory` y verticales/cuadradas `editorial`, sie
 
 ### Música ambiental
 
-Agregar `public/audio/the-love-issue.mp3` y reconstruir basta. El botón **Activar música / Silenciar música** solo aparece si existe el archivo. La música requiere una acción explícita, usa loop y volumen 0.16 (configurable entre 0 y 0.3), y conserva la posición entre páginas y al silenciar/reactivar. Se pausa al escuchar el audio de un video, al pausar/mantener presionado, salir de pantalla o esconder la pestaña; se restaura si seguía habilitada, incluso al terminar un video en modo manual. No se monta un audio por slide. Un bloqueo de reproducción permite reintentar; un archivo roto notifica el fallo sin impedir el recorrido. La ausencia del MP3 no muestra controles rotos.
+La pista actual es `public/audio/videoplayback.weba`: contenedor WebM, audio Opus. Hay un solo elemento audio y un solo controlador Web Audio (`AudioContext` + `GainNode`), creado al interactuar. **Abrir mi edición** solicita la reproducción; si el navegador la bloquea queda el botón **Activar música**. El volumen inicial es 0.16; el invitado puede ajustarlo entre 0 y 100% y silenciarlo. La preferencia se conserva durante el recorrido, no se escribe un perfil persistente del invitado.
 
-Publicar MP4 H.264 vertical 1080×1920, idealmente 15–30 s, comprimido y con fast-start. El video usa `object-fit: cover`: mantener rostros y texto esencial dentro del área central. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT en `/videos/nombre.vtt` mediante `captions`/`generalCaptions`; transcripción revisada en `transcript`/`generalTranscript`.
+Durante cualquier video que esté reproduciéndose, la ganancia efectiva es `volumenElegido × 0.02`. Ejemplo: 40% pasa a 0.8% del volumen de salida total, no a 2% fijo. La pista sigue reproduciéndose y su reloj avanza. Al pausar/terminar/cerrar el video se recupera el volumen elegido; las rampas duran 350 ms. El silencio elegido por el usuario no se revierte automáticamente. La música solo se pausa al silenciar, pausar el recorrido, mantener presionado, ocultar pestaña o salir de pantalla. No reinicia al cambiar de slide o video. La ruta se libera al desmontar.
+
+WEBA/Opus se comprueba mediante `canPlayType` y reproducción real en Chromium/Edge; esto no acredita Safari/iOS ni dispositivos físicos. El control de ganancia usa Web Audio y no depende de que iOS permita escribir `HTMLMediaElement.volume`. Para Safari/navegadores antiguos sin ese códec, añadir una **copia derivada MP3** en `public/audio/the-love-issue.mp3`, conservando el WEBA original. Se selecciona como alternativa cuando no hay soporte o falla la carga del WEBA. Todavía no se ha recibido esa alternativa: si no existe, el fallo se explica y la edición continúa sin música. Referencias: [formatos multimedia MDN](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers), [limitaciones de volume](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volume).
+
+Preferir derivados MP4 H.264/AAC con fast-start, sin sobrescribir los originales. El video usa `object-fit: contain`: conserva rostros y textos incluso si la proporción no es 9:16. El segundo MP4 no se monta ni descarga hasta reproducir su presentación. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT del mismo nombre base se detectan junto al video; siguen funcionando los campos `captions`/`generalCaptions` y `transcript`/`generalTranscript`. No se recibieron subtítulos ni transcripciones reales: no se inventan.
 
 ```powershell
 npm.cmd run test:stories
@@ -157,9 +175,11 @@ npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts stories-photos
 
 Las pruebas cubren los seis destinatarios/segmentos, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-photos.spec.ts` recorre todas las fotos de cada edición en 320/390/768/1440 px y verifica proporciones completas, ausencia de transformaciones que recorten personas, orden/cobertura, aislamiento de peticiones y progreso/pausa de History. Las capturas complementan estas comprobaciones, no identifican personas automáticamente.
 
-`stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build local: MP4 sintético 9:16 de 7 s, poster, VTT y MP3 silencioso (`tests/create-story-fixture.mjs`). Verifica duración/ended, sonido, pausa, CC/transcripción, fallos de video/foto, música continua, pausa al escuchar video, restauración y bloqueo de autoplay. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions` y `generalTranscript` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los cuatro archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+`stories-audiovisual.spec.ts` usa los medios reales: las seis rutas, uno/dos videos y orden, carga diferida, History obligatorio, WEBA, ganancia efectiva al 2%, volumen/mute, restricciones de autoplay, ayudas y auditoría axe sobre el DOM renderizado. Ver [auditoría de usabilidad](USABILITY-AUDIT.md).
 
-La evidencia de navegador no reemplaza QA en iOS/Android reales ni valida videos personales o una pista musical definitiva que aún no se han recibido. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen.
+`stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build local sobre la edición pública: MP4 sintético 9:16 de 7 s, poster, VTT y MP3 silencioso (`tests/create-story-fixture.mjs`). Verifica duración/ended, sonido, pausa, CC/transcripción, fallos de video/foto, música continua con atenuación, restauración y bloqueo de autoplay. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions`, `generalTranscript` y `music` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los cuatro archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+
+La evidencia de navegador comprueba reproducción de los cinco MP4 reales y del WEBA recibido, pero no reemplaza QA ni escucha en iOS/Android físicos. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen.
 
 ## Recorrido y función narrativa
 
@@ -168,7 +188,7 @@ La evidencia de navegador no reemplaza QA en iOS/Android reales ni valida videos
 | Carta cerrada | Identificar destinatario y cupos | Abrir, sin enlaces de bypass | Formulario nativo |
 | Apertura | Umbral físico de objeto a lectura | Solapa → papel → pliegues → destinatario | Inmediata con reduced motion; control para omitir animación |
 | Saludo | Dedicar la carta | Foco y lectura libre | Nombre y cupos en HTML |
-| The Love Issue | Edición personal en seis stories | Recap opcional, gestos y regreso a invitación | Lectura estática y composiciones tipográficas sin medios |
+| The Love Issue | Edición personal en seis stories | History obligatorio, controles visibles, mensajes consecutivos y regreso a invitación | Lectura estática y composiciones tipográficas sin medios |
 | Historia | Pasar a memoria compartida | Pausa tipográfica y tinta | Contenido estático |
 | 2008 | Comienzo real de la relación | Primera página de memoria | Capítulo tipográfico |
 | 2022 | Boda civil | Relevo espacial | Capítulo tipográfico |

@@ -9,10 +9,10 @@ import path from "node:path";
 export async function availableMedia(source, kind, publicRoot = path.join(process.cwd(), "public")) {
   if (source == null) return null;
   const patterns = {
-    video: /^\/videos\/[a-zA-Z0-9_-]+\.mp4$/,
+    video: /^\/videos\/[a-zA-Z0-9_ -]+\.mp4$/i,
     image: /^\/(?:images|posters)\/[a-zA-Z0-9_-]+\.(webp|png|jpe?g)$/,
-    captions: /^\/videos\/[a-zA-Z0-9_-]+\.vtt$/,
-    audio: /^\/audio\/[a-zA-Z0-9_-]+\.mp3$/,
+    captions: /^\/videos\/[a-zA-Z0-9_ -]+\.vtt$/i,
+    audio: /^\/audio\/[a-zA-Z0-9_ -]+\.(mp3|weba|m4a)$/i,
   };
   if (!patterns[kind].test(source)) throw new Error(`Invalid story ${kind} path: ${source}`);
   try {
@@ -128,4 +128,37 @@ export async function resolveStoryVideo(guest, config, publicRoot) {
     transcript: personal ? guest.transcript : config.generalTranscript,
     personalized: Boolean(personal),
   };
+}
+
+export async function resolveStoryVideos(guest, config, publicRoot = path.join(process.cwd(), "public")) {
+  const first = await resolveStoryVideo(guest, config, publicRoot);
+  let files;
+  try { files = await readdir(path.join(publicRoot, "videos")); }
+  catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") files = [];
+    else throw error;
+  }
+  const matches = guest.slug && guest.slug !== "default" ? files
+    .filter((file) => /\.mp4$/i.test(file) && photoEdition(file) === guest.slug)
+    .sort((a, b) => new Intl.Collator("es", { numeric: true, sensitivity: "base" })
+      .compare(path.parse(a).name, path.parse(b).name) || a.localeCompare(b)) : [];
+  const discovered = matches.map((file) => `/videos/${file}`);
+  const configured = first?.personalized
+    ? discovered.find((source) => source.toLowerCase() === first.source.toLowerCase()) ?? first.source : null;
+  const sources = [...new Set([...(configured ? [configured] : []), ...discovered])];
+  if (sources.length > 2) throw new Error(`More than two story videos for ${guest.slug}; review the video inventory.`);
+  if (!sources.length) return first ? [{ ...first, kind: "invitation" }] : [];
+  return Promise.all(sources.map(async (source, index) => {
+    await availableMedia(source, "video", publicRoot);
+    if (configured === source && first) return { ...first, source, kind: index ? "special" : "invitation" };
+    const stem = path.parse(source).name;
+    const captions = await availableMedia(`/videos/${stem}.vtt`, "captions", publicRoot);
+    return {
+      source, poster: index === 0 ? await firstAvailableMedia([
+        guest.poster, `/posters/${guest.slug}.jpg`,
+      ], "image", publicRoot) : null,
+      captions, transcript: index === 0 ? guest.transcript : null,
+      personalized: true, kind: index ? "special" : "invitation",
+    };
+  }));
 }

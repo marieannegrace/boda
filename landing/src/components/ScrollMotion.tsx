@@ -8,7 +8,7 @@ import { motion } from "@/animations/tokens";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-export default function ScrollMotion({ children, active = true }: { children: React.ReactNode; active?: boolean }) {
+export default function ScrollMotion({ children, active = true, layoutVersion = false }: { children: React.ReactNode; active?: boolean; layoutVersion?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   useGSAP(() => {
     if (!active) return;
@@ -58,6 +58,6 @@ export default function ScrollMotion({ children, active = true }: { children: Re
       container?.removeEventListener("load", refresh, true);
       media.revert();
     };
-  }, { scope: root, dependencies: [active], revertOnUpdate: true });
+  }, { scope: root, dependencies: [active, layoutVersion], revertOnUpdate: true });
   return <div ref={root}>{children}</div>;
 }

@@ -37,19 +37,24 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
     await expect(issue.locator('[data-story-id="moment"]')).toContainText("Ahora queremos escribir");
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
-    await expect(issue.locator('[data-story-id="message"]')).toContainText("DE NUESTRA VOZ A USTEDES");
-    await expect(issue.locator('[data-story-id="message"]')).toContainText("Luis & Marie");
+    const hasVideo = Number(await issue.getAttribute("data-video-count")) > 0;
+    if (hasVideo) {
+      await expect(issue.locator("video")).toBeVisible();
+    } else {
+      await expect(issue.locator('[data-story-id="message"]')).toContainText("DE NUESTRA VOZ A USTEDES");
+      await expect(issue.locator('[data-story-id="message"]')).toContainText("Luis & Marie");
+    }
     const editorialText = await issue.innerText();
     expect(editorialText).not.toMatch(/placeholder|video pendiente|fotografía pendiente|undefined|\bnull\b|\bNaN\b|pendiente de incorporar/i);
     await expect(issue.getByRole("button", { name: "Subtítulos", exact: true })).toHaveCount(0);
     await expect(issue.getByText("Leer el mensaje", { exact: true })).toHaveCount(0);
-    await issue.getByRole("button", { name: "Historia siguiente" }).click();
+    await goToStory(issue, 5);
     await expect(issue.locator('[data-story-id="closing"]')).toBeVisible();
     await issue.getByRole("link", { name: "Ver la invitación", exact: true }).click();
     await expect(page.locator("#invitacion-heading")).toBeFocused();
     await expect(page.locator("#invitacion")).toBeInViewport();
     expect(await page.locator("[data-scene]").count()).toBe(15);
-    expect(videos).toEqual([]);
+    if (!hasVideo) expect(videos).toEqual([]);
     expect(errors).toEqual([]);
   });
 }
@@ -58,10 +63,11 @@ test("Love Issue automatic clock pauses on hold, resumes, and stops offscreen", 
   const issue = await start(page, "roberto", false);
   await expect(issue).toHaveAttribute("data-suspended", "false");
   const surface = issue.locator('[class*="surface"]');
+  await page.waitForTimeout(700);
+  await surface.scrollIntoViewIfNeeded();
   const bounds = await surface.boundingBox();
   if (!bounds) throw new Error("Story surface missing");
   const progress = () => issue.locator("ol span").first().evaluate((element) => getComputedStyle(element).transform);
-  await page.waitForTimeout(700);
   await page.mouse.move(bounds.x + bounds.width * 0.8, bounds.y + bounds.height * 0.8);
   await page.mouse.down();
   await expect(issue).toHaveAttribute("data-holding", "true");
@@ -76,7 +82,7 @@ test("Love Issue automatic clock pauses on hold, resumes, and stops offscreen", 
   await page.waitForTimeout(600);
   await expect(issue).toHaveAttribute("data-suspended", "true");
   await issue.getByRole("button", { name: "Continuar stories" }).click();
-  await page.locator("#confirmacion").scrollIntoViewIfNeeded();
+  await page.locator("#saludo").scrollIntoViewIfNeeded();
   await expect(issue).toHaveAttribute("data-suspended", "true");
   await page.waitForTimeout(600);
   await expect(issue).toHaveAttribute("data-story-index", "1");

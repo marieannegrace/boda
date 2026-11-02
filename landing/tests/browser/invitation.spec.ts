@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import guests from "../../src/data/guests.json";
+import { goToStory } from "./story-navigation";
 
 const recipients = Object.values(guests).filter((guest) => guest.slug !== "default");
 const widths = [320, 390, 768, 1440];
@@ -47,7 +48,8 @@ for (const guest of recipients) {
       await page.mouse.wheel(0, 400);
       await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(before);
       if (width < 960) expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
-      expect(await page.getByRole("link", { name: /Confirmar por WhatsApp/ }).getAttribute("href")).toContain(encodeURIComponent(guest.displayName));
+      expect(await page.getByRole("link", { name: /Confirmar por WhatsApp/, includeHidden: true }).getAttribute("href")).toContain(encodeURIComponent(guest.displayName));
+      await expect(page.locator("[data-history-content]")).toBeHidden();
       await expect(page.locator("#postboda")).not.toContainText("Desayuno junto a la piscina");
       await expect(page.locator("#video")).toContainText("DE NUESTRA VOZ A USTEDES");
       expect(media).toEqual([]);
@@ -113,6 +115,9 @@ test("360/430px and short landscape keep the CTA accessible; expanded invitation
     await button.click();
     await expect(page.locator("[data-entry-state]")).toHaveAttribute("data-entry-state", "opened");
   }
+  const issue = page.locator("[data-love-issue]");
+  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await goToStory(issue, 2);
   const enlarge = page.getByRole("button", { name: "Ampliar invitación" });
   await enlarge.click();
   await expect(page.getByRole("dialog")).toBeVisible();

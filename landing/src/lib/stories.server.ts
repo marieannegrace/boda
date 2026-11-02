@@ -3,7 +3,7 @@ import config from "@/data/stories.json";
 import event from "@/data/event.json";
 import type { Guest } from "./guests.server";
 import type { StoriesContent, StoryId, StorySlide, StoryPhoto } from "./stories";
-import { availableMedia, historyPages, loadStoryPhotoCatalog, resolveStoryImages, resolveStoryVideo } from "./story-media.mjs";
+import { availableMedia, historyPages, loadStoryPhotoCatalog, resolveStoryImages, resolveStoryVideos } from "./story-media.mjs";
 import { getGuestUrl, getSiteUrl } from "./site-url.mjs";
 
 const ids: StoryId[] = ["cover", "history", "family", "moment", "message", "closing"];
@@ -18,11 +18,12 @@ export async function getStories(guest: Guest): Promise<StoriesContent> {
   });
   if (slides.length !== ids.length) throw new Error("The Love Issue requires six stories.");
   const overrides = guest.stories;
-  const [video, { photo, historyPhoto }, catalog, music] = await Promise.all([
-    resolveStoryVideo(guest, config),
+  const [videos, { photo, historyPhoto }, catalog, music, musicFallback] = await Promise.all([
+    resolveStoryVideos(guest, config),
     resolveStoryImages(guest, config),
     loadStoryPhotoCatalog(),
     availableMedia(config.music, "audio"),
+    availableMedia("/audio/the-love-issue.mp3", "audio"),
   ]);
   const selected: StoryPhoto[] = catalog.filter((item: StoryPhoto & { edition: string }) => item.edition === guest.slug);
   const global: StoryPhoto[] = catalog.filter((item: StoryPhoto & { edition: string }) => item.edition === "global");
@@ -58,11 +59,12 @@ export async function getStories(guest: Guest): Promise<StoriesContent> {
     location: `${event.location.name} · ${event.location.region.split(",")[0]}`,
     colophon: `${event.location.name} · ${datePart("year")}`,
     shareUrl: guest.slug === "default" ? (siteUrl ? `${siteUrl}/` : null) : getGuestUrl(siteUrl, guest.slug),
-    video: video ? { ...video, poster: video.poster ?? messagePhoto?.source ?? photo ?? historyPhoto } : null,
+    videos: videos.map((video) => ({ ...video, kind: video.kind === "special" ? "special" : "invitation",
+      poster: video.poster ?? messagePhoto?.source ?? photo ?? historyPhoto })),
     historyPages: historyPages(selected.map(safePhoto)), historyReflection: config.photography.historyReflection,
     momentPhoto: momentPhoto ? safePhoto(momentPhoto) : null,
     messagePhoto: messagePhoto ? safePhoto(messagePhoto) : null,
-    music, musicVolume: config.musicVolume,
+    music: music ?? musicFallback, musicFallback: music && music !== musicFallback ? musicFallback : null, musicVolume: config.musicVolume,
     photo, historyPhoto, slides,
   };
 }

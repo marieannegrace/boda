@@ -23,6 +23,15 @@ export interface HistoryPage {
   photos: StoryPhoto[];
 }
 
+export interface StoryVideo {
+  source: string;
+  poster: string | null;
+  captions: string | null;
+  transcript: string | null;
+  personalized: boolean;
+  kind: "invitation" | "special";
+}
+
 export interface StoriesContent {
   title: string;
   subtitle: string;
@@ -50,13 +59,8 @@ export interface StoriesContent {
   momentPhoto: StoryPhoto | null;
   messagePhoto: StoryPhoto | null;
   music: string | null;
+  musicFallback: string | null;
   musicVolume: number;
-  video: {
-    source: string;
-    poster: string | null;
-    captions: string | null;
-    transcript: string | null;
-    personalized: boolean;
-  } | null;
+  videos: StoryVideo[];
   slides: StorySlide[];
 }

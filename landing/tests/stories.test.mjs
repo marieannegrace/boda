@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { availableMedia, resolveStoryVideo, resolveStoryImages, discoverStoryPhotos, photoEdition, historyPages } from "../src/lib/story-media.mjs";
+import { availableMedia, resolveStoryVideo, resolveStoryVideos, resolveStoryImages, discoverStoryPhotos, photoEdition, historyPages } from "../src/lib/story-media.mjs";
 
 const config = JSON.parse(await readFile(new URL("../src/data/stories.json", import.meta.url), "utf8"));
 const guests = JSON.parse(await readFile(new URL("../src/data/guests.json", import.meta.url), "utf8"));
@@ -67,9 +67,23 @@ test("every real photo is associated and retained in natural order without any a
   }
 });
 
-test("audio is optional and restricted to a local MP3", async () => {
+test("audio is optional and restricted to supported local audio paths", async () => {
   assert.equal(await availableMedia("/audio/missing-track.mp3", "audio"), null);
   await assert.rejects(availableMedia("/audio/../private.mp3", "audio"), /Invalid story audio path/);
+  assert.equal(await availableMedia("/audio/videoplayback.weba", "audio"), "/audio/videoplayback.weba");
+});
+
+test("actual one/two-video filenames resolve consistently with case and spaces, without leaking another edition", async () => {
+  for (const [slug, names] of [
+    ["giovanna", ["GIOVANNA.mp4", "GIOVANNA 2.mp4"]],
+    ["roberto", ["ROBERTO.mp4", "ROBERTO 2.mp4"]],
+    ["mariayroberto", ["ROBERTO Y MARIA.mp4"]],
+    ["amparoyeduardo", []], ["mercedes", []], ["florisyabsalon", []], ["default", []],
+  ]) {
+    const videos = await resolveStoryVideos(guests[slug], config);
+    assert.deepEqual(videos.map((video) => path.basename(video.source)), names);
+    assert.deepEqual(videos.map((video) => video.kind), names.map((_, n) => n ? "special" : "invitation"));
+  }
 });
 
 test("upload conventions discover only the selected family's photos and poster without editing JSON", async () => {

@@ -27,7 +27,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
       await page.goto(`${basePath}/${guest.slug}/lectura/`);
       const issue = page.locator("[data-love-issue]");
       await issue.locator('[class*="startButton"]').click();
-      await expect(issue.getByRole("button", { name: "Activar música", exact: true })).toHaveCount(0);
+      await expect(issue.locator("audio")).toHaveCount(1);
       await goToStory(issue, 1);
       const count = Number(await issue.getAttribute("data-history-count"));
       const seen: string[] = [];
@@ -58,12 +58,14 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
       await goToStory(issue, 3);
       await expect(issue.locator('[data-story-id="moment"] [data-photo-file]')).toHaveAttribute("data-photo-file", "luis y marie.jpg");
       await goToStory(issue, 4);
-      await expect(issue.locator('[data-story-id="message"] [data-photo-file]')).toHaveAttribute("data-photo-file", "luis y marie 2.JPG");
+      if (Number(await issue.getAttribute("data-video-count")) === 0) {
+        await expect(issue.locator('[data-story-id="message"] [data-photo-file]')).toHaveAttribute("data-photo-file", "luis y marie 2.JPG");
+      } else {
+        await expect(issue.locator("video")).toHaveCount(1);
+      }
       await expect(issue.locator('[data-story-id="message"]')).not.toContainText("Con cariño,");
       await goToStory(issue, 5);
-      if (width >= 390) {
-        expect(await issue.locator('[data-story-id="closing"]').evaluate((slide) => slide.scrollHeight - slide.clientHeight)).toBeLessThanOrEqual(1);
-      }
+      expect(await issue.locator('[data-story-id="closing"]').evaluate((slide) => slide.scrollHeight - slide.clientHeight)).toBeLessThanOrEqual(1);
       expect(await page.locator("[data-scene]").count()).toBe(15);
       const allowed = catalog.filter((photo: { edition: string }) => photo.edition === guest.slug || photo.edition === "global")
         .flatMap((photo: { variants: { source: string }[] }) => photo.variants.map((variant) => variant.source));

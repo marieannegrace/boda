@@ -48,9 +48,9 @@ function validateGuest(guest: Guest, key: string) {
     throw new Error(`Invalid postWeddingAccess: ${key}`);
   }
   for (const [value, pattern] of [
-    [guest.video, /^\/videos\/[a-zA-Z0-9_-]+\.mp4$/],
+    [guest.video, /^\/videos\/[a-zA-Z0-9_ -]+\.mp4$/i],
     [guest.poster, /^\/(?:images|posters)\/[a-zA-Z0-9_-]+\.(webp|png|jpe?g)$/],
-    [guest.captions, /^\/videos\/[a-zA-Z0-9_-]+\.vtt$/],
+    [guest.captions, /^\/videos\/[a-zA-Z0-9_ -]+\.vtt$/i],
   ] as const) {
     if (value !== null && !pattern.test(value)) {
       throw new Error(`Invalid media path in configuration: ${key}`);

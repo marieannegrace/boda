@@ -4,7 +4,7 @@ import type { Guest } from "@/lib/guests.server";
 import LoveIssue from "./LoveIssue";
 import { getStories } from "@/lib/stories.server";
 import InvitationImage from "./InvitationImage";
-import InvitationGate from "./InvitationGate";
+import InvitationGate, { HistoryGate } from "./InvitationGate";
 import { getSiteUrl, getGuestUrl } from "@/lib/site-url.mjs";
 import { assetPath } from "@/lib/asset-path";
 import ChapterNavigation from "./ChapterNavigation";
@@ -55,6 +55,7 @@ export default async function Experience({ guest, initialOpened = false }: { gue
           <LoveIssue content={stories} />
         </section>
 
+        <HistoryGate>
         <section id="historia" data-scene="historia" className={`${styles.scene} ${styles.historyIntro}`} aria-labelledby="historia-heading">
           <p>Una memoria compartida</p>
           <h2 id="historia-heading" data-ink>Nuestra<br />historia</h2>
@@ -198,6 +199,7 @@ export default async function Experience({ guest, initialOpened = false }: { gue
             </details>
           ) : null}
         </section>
+        </HistoryGate>
       </main>
       <footer className={styles.footer}><p>The Letter · {event.stage}</p><p>Una carta para recorrer y conservar.</p></footer>
     </InvitationGate>
