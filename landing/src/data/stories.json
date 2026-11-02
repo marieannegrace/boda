@@ -16,12 +16,18 @@
   "photoAlt": "Luis y Marie, una memoria compartida.",
   "messageHeading": "DE NUESTRA VOZ A USTEDES",
   "messageSignoff": "Con cariño,",
+  "music": "/audio/the-love-issue.mp3",
+  "musicVolume": 0.16,
+  "photography": {
+    "historyReflection": "Algunos recuerdos se quedan con nosotros.",
+    "overrides": {}
+  },
   "slides": [
     { "id": "cover", "label": "La portada", "duration": 5, "lines": [] },
     { "id": "history", "label": "Nuestra historia contigo", "duration": 5, "lines": ["Hay personas que forman parte de nuestra historia mucho antes de saberlo.", "Y ustedes son una de ellas."] },
     { "id": "family", "label": "Tu edición", "duration": 5, "lines": [] },
     { "id": "moment", "label": "Una nueva página", "duration": 5, "lines": ["Ahora queremos escribir una nueva página juntos.", "Y queremos vivirla con ustedes."] },
     { "id": "message", "label": "De nuestra voz a ustedes", "duration": 5, "lines": [] },
-    { "id": "closing", "label": "El encuentro", "duration": 5, "lines": ["Nos encantará compartir este momento con ustedes."] }
+    { "id": "closing", "label": "El encuentro", "duration": 5, "lines": ["Gracias por acompañarnos en este camino.", "Que permanezcan siempre en nosotros la fe, la esperanza y el amor."] }
   ]
 }

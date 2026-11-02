@@ -1,9 +1,9 @@
-import { stat } from "node:fs/promises";
+import { stat, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
  * @param {string | null | undefined} source
- * @param {"video" | "image" | "captions"} kind
+ * @param {"video" | "image" | "captions" | "audio"} kind
  * @param {string} [publicRoot]
  */
 export async function availableMedia(source, kind, publicRoot = path.join(process.cwd(), "public")) {
@@ -12,6 +12,7 @@ export async function availableMedia(source, kind, publicRoot = path.join(proces
     video: /^\/videos\/[a-zA-Z0-9_-]+\.mp4$/,
     image: /^\/(?:images|posters)\/[a-zA-Z0-9_-]+\.(webp|png|jpe?g)$/,
     captions: /^\/videos\/[a-zA-Z0-9_-]+\.vtt$/,
+    audio: /^\/audio\/[a-zA-Z0-9_-]+\.mp3$/,
   };
   if (!patterns[kind].test(source)) throw new Error(`Invalid story ${kind} path: ${source}`);
   try {
@@ -21,6 +22,60 @@ export async function availableMedia(source, kind, publicRoot = path.join(proces
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
     throw error;
   }
+}
+
+export function photoEdition(file) {
+  const words = path.parse(file).name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const has = (word) => words.includes(word);
+  if (has("luis") && has("marie")) return "global";
+  if (has("mariayroberto") || (has("maria") && has("roberto"))) return "mariayroberto";
+  if (has("roberto")) return "roberto";
+  if (has("giovanna")) return "giovanna";
+  if (has("amparoyeduardo") || (has("amparo") && has("eduardo"))) return "amparoyeduardo";
+  if (has("florisyabsalon") || ((has("floris") || has("flor")) && has("absalon"))) return "florisyabsalon";
+  if (has("mercedes")) return "mercedes";
+  return null;
+}
+
+export async function discoverStoryPhotos(publicRoot = path.join(process.cwd(), "public")) {
+  let files;
+  try { files = await readdir(path.join(publicRoot, "posters")); }
+  catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+    throw error;
+  }
+  const collator = new Intl.Collator("es", { numeric: true, sensitivity: "base" });
+  const sortName = (file) => path.parse(file).name.replace(/\s+/g, " ").trim();
+  return files.filter((file) => /\.(jpe?g|png|webp)$/i.test(file))
+    .sort((a, b) => collator.compare(sortName(a), sortName(b)) || (a < b ? -1 : a > b ? 1 : 0))
+    .map((file) => ({ file, edition: photoEdition(file) }));
+}
+
+export async function loadStoryPhotoCatalog() {
+  try {
+    return JSON.parse(await readFile(path.join(process.cwd(), ".cache", "story-photos.json"), "utf8"));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new Error("Missing story photo catalog. Run npm run photos:prepare before starting Next.");
+    }
+    throw error;
+  }
+}
+
+/** @param {import("./stories").StoryPhoto[]} photos */
+export function historyPages(photos) {
+  /** @type {import("./stories").HistoryPage[]} */
+  const pages = [{ kind: "intro", photos: [] }];
+  for (let i = 0; i < photos.length;) {
+    const count = i === 0 ? 1 : Math.min(2, photos.length - i);
+    pages.push({ kind: "photos", photos: photos.slice(i, i + count) });
+    i += count;
+    if (i >= 5 && i < photos.length && pages.every((page) => page.kind !== "reflection")) {
+      pages.push({ kind: "reflection", photos: [] });
+    }
+  }
+  return pages;
 }
 
 /**

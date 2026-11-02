@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { goToStory } from "./story-navigation";
 
 test.skip(!process.env.STORIES_MEDIA_FIXTURE, "Requires a local-only synthetic fixture build, never production media.");
 const route = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/giovanna/lectura/`;
@@ -19,7 +20,7 @@ async function message(page: import("@playwright/test").Page, reduced = false) {
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
   await issue.getByRole("button", { name: "Abrir mi edición" }).click();
-  for (let i = 0; i < 4; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 4);
   await expect(issue).toHaveAttribute("data-story-index", "4");
   return issue;
 }
@@ -80,18 +81,18 @@ test("Love Issue video fixture: failed media offers retry and does not trap the 
   await expect(issue).toContainText("El mensaje no pudo cargarse");
   await expect(issue.getByRole("button", { name: "Reintentar mensaje" })).toBeVisible();
   await expect(issue.locator("video")).toHaveCount(0);
-  await expect(issue.locator('[data-story-id="message"]')).toContainText("Con cariño,");
+  await expect(issue.locator('[data-story-id="message"]')).toContainText("DE NUESTRA VOZ A USTEDES");
   await issue.getByRole("button", { name: "Historia siguiente" }).click();
   await expect(issue.getByRole("link", { name: "Ver la invitación", exact: true })).toBeVisible();
 });
 
 test("Love Issue video fixture: failed story photo leaves an editorial composition, never a broken image", async ({ page }) => {
-  await page.route("**/story-fixture.png", (request) => request.abort());
+  await page.route("**/images/stories/**", (request) => request.abort());
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
   await issue.getByRole("button", { name: "Abrir mi edición" }).click();
-  for (let i = 0; i < 3; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 3);
   const moment = issue.locator('[data-story-id="moment"]');
   await expect(moment).toContainText("Ahora queremos escribir una nueva página juntos.");
   await expect(moment.locator("img")).toHaveCount(0);
@@ -109,4 +110,83 @@ test("Love Issue video fixture: captions can be toggled and transcript opens onl
   await expect.poll(() => issue.locator("video").evaluate((element: HTMLVideoElement) => element.textTracks[0]?.mode)).toBe("hidden");
   await issue.getByText("Leer el mensaje", { exact: true }).click();
   await expect(issue.locator("details")).toContainText("Synthetic media transcript");
+});
+
+test("Love Issue music is opt-in, continuous across history pages, ducked for video audio and resumed without restarting", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const audioRequests: string[] = [];
+  page.on("request", (request) => { if (request.url().endsWith(".mp3")) audioRequests.push(request.url()); });
+  await page.goto(route);
+  const issue = page.locator("[data-love-issue]");
+  const audio = issue.locator("audio");
+  await expect(audio).not.toHaveAttribute("src");
+  expect(audioRequests).toEqual([]);
+  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Activar música", exact: true }).click();
+  const time = () => audio.evaluate((el: HTMLAudioElement) => el.currentTime);
+  const paused = () => audio.evaluate((el: HTMLAudioElement) => el.paused);
+  await expect.poll(time).toBeGreaterThan(0.1);
+  expect(await audio.evaluate((el: HTMLAudioElement) => ({ loop: el.loop, volume: el.volume })))
+    .toEqual({ loop: true, volume: 0.16 });
+  const begun = await time();
+  await goToStory(issue, 1);
+  await issue.getByRole("button", { name: "Historia siguiente", exact: true }).click();
+  await expect.poll(time).toBeGreaterThan(begun);
+  await issue.getByRole("button", { name: "Silenciar música", exact: true }).click();
+  await expect.poll(paused).toBe(true);
+  const mutedAt = await time();
+  await issue.getByRole("button", { name: "Activar música", exact: true }).click();
+  await expect.poll(time).toBeGreaterThan(mutedAt);
+  await goToStory(issue, 4);
+  await issue.getByRole("button", { name: "Reproducir video", exact: true }).click();
+  await expect.poll(() => videoState(issue.locator("video"))).toMatchObject({ paused: false, muted: true });
+  await expect.poll(paused).toBe(false);
+  await issue.getByRole("button", { name: "Activar sonido", exact: true }).click();
+  await expect.poll(paused).toBe(true);
+  const duckedAt = await time();
+  await expect.poll(() => videoState(issue.locator("video")), { timeout: 10000 }).toMatchObject({ ended: true });
+  await expect(issue).toHaveAttribute("data-story-index", "4");
+  await expect.poll(time).toBeGreaterThan(duckedAt);
+  const resumedAt = await time();
+  await goToStory(issue, 5);
+  await expect.poll(time).toBeGreaterThan(resumedAt);
+  await issue.getByRole("link", { name: "Ver la invitación", exact: true }).click();
+  await expect.poll(paused).toBe(true);
+});
+
+test("Love Issue music load failure removes the broken control and preserves the edition", async ({ page }) => {
+  await page.route("**/the-love-issue.mp3", (request) => request.abort());
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route);
+  const issue = page.locator("[data-love-issue]");
+  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Activar música", exact: true }).click();
+  await expect(issue.locator("audio")).toHaveCount(0);
+  await expect(issue).toContainText("No se pudo cargar la música");
+  await goToStory(issue, 5);
+  await expect(issue.getByRole("link", { name: "Ver la invitación", exact: true })).toBeVisible();
+});
+
+test("Love Issue blocked audio keeps an explicit retry and does not pretend music is playing", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = HTMLMediaElement.prototype.play;
+    let blocked = true;
+    HTMLMediaElement.prototype.play = function () {
+      if (this instanceof HTMLAudioElement && blocked) {
+        blocked = false;
+        return Promise.reject(new DOMException("Test autoplay policy", "NotAllowedError"));
+      }
+      return original.call(this);
+    };
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route);
+  const issue = page.locator("[data-love-issue]");
+  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Activar música", exact: true }).click();
+  await expect(issue).toContainText("La música no pudo iniciarse");
+  await expect(issue.getByRole("button", { name: "Activar música", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await issue.getByRole("button", { name: "Activar música", exact: true }).click();
+  await expect.poll(() => issue.locator("audio").evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(0.1);
 });

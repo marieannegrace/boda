@@ -42,5 +42,10 @@ try {
   const poster = await sharp({ create: { width: 240, height: 426, channels: 3, background: "#3d493c" } }).png().toBuffer();
   await writeFile(path.join("public", "images", "story-fixture.png"), poster, { flag: "wx" });
   await writeFile(path.join("public", "videos", "story-fixture.vtt"), "WEBVTT\n\n00:00.000 --> 00:07.000\nSynthetic media caption\n", { flag: "wx" });
-  console.log("Synthetic 9:16 MP4, poster and VTT created. Delete all three files and restore stories.json before publishing.");
+  await mkdir(path.join("public", "audio"), { recursive: true });
+  const silentFrame = Buffer.alloc(417);
+  silentFrame.set([0xff, 0xfb, 0x90, 0x00]);
+  await writeFile(path.join("public", "audio", "the-love-issue.mp3"),
+    Buffer.concat(Array.from({ length: 1200 }, () => silentFrame)), { flag: "wx" });
+  console.log("Synthetic MP4, poster, VTT and silent MP3 created. Delete all four files and restore stories.json before publishing.");
 } finally { await browser.close(); }

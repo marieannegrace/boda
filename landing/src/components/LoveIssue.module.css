@@ -54,10 +54,21 @@
 .cover { gap: 0.75rem; }
 .coverSubtitle { font-style: italic; font-size: 0.875rem; max-width: 26ch; line-height: 1.5; }
 .page[data-story-id="history"] { background: var(--issue-champagne); }
-.history { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 1.25rem; min-height: 100%; padding-inline: 0.5rem; }
-.history > p { font: 400 1.875rem/1.13 var(--display); }
+.history { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.875rem; min-height: 100%; padding-inline: 0.5rem; }
+.history > p { font: 400 1.5rem/1.2 var(--display); }
 .history .signature { font-size: 1.0625rem; margin-top: 1rem; }
-.largeQuote { font: 400 8rem/0.6 var(--display); color: var(--issue-tobacco); }
+.historyLabel { font: 400 0.6875rem/1.6 var(--issue-sans); letter-spacing: 0.08em; }
+.historySpread { position: relative; height: 100%; min-height: 18rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.historyImages { flex: 1; min-height: 0; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 0.75rem; }
+.historyImages[data-layout="paired-portraits"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.memoryPhoto { position: relative; min-height: 0; width: 100%; margin: 0; }
+.memoryPhoto img { filter: saturate(0.94); }
+.memoryPhoto[data-treatment="memory"] { background: #f3ebdd66; }
+.memoryCaption { font: italic 400 1.125rem/1.25 var(--display); max-width: 24ch; }
+.memoryNumber { text-align: right; font: 400 0.625rem/1.5 var(--issue-sans); }
+.historyReflection { min-height: 100%; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2rem; }
+.historyReflection > p:first-of-type { font: 400 2.5rem/1.1 var(--display); max-width: 14ch; }
+.largeQuote { font: 400 4rem/0.6 var(--display); color: var(--issue-tobacco); }
 .editionTitle { font: 500 1.25rem/1.2 var(--display); }
 .familyName { font: 500 2.25rem/1 var(--display); text-transform: uppercase; overflow-wrap: anywhere; max-width: 16ch; }
 .familyLabel { margin-top: 0.5rem; }
@@ -67,16 +78,21 @@
 .moment { height: 100%; display: flex; flex-direction: column; justify-content: safe center; gap: 1rem; }
 .momentHeading { font: 400 1.625rem/1.15 var(--display); max-width: 22ch; }
 .photoFrame { position: relative; flex: 1; min-height: 7rem; max-height: 54%; margin: 0; border: 1px solid #d8c9ac; overflow: hidden; background: #536050; }
-.photoFrame img { object-fit: cover; filter: saturate(0.82) sepia(0.12); }
+.photoFrame img { filter: saturate(0.94); }
 .photoFrame::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(32deg, #f1e7d507 0 1px, transparent 1px 3px); }
 .momentMonogram { display: block; font: italic 400 4rem/1 var(--display); text-align: center; margin-block: 1.5rem; }
 .photoFrame + .momentMonogram { display: none; }
 .historyPhoto { position: relative; aspect-ratio: 3 / 2; min-height: 5rem; width: 100%; overflow: hidden; }
-.historyPhoto img { object-fit: cover; filter: saturate(0.82) sepia(0.12); }
+.historyPhoto img { filter: saturate(0.94); }
 .momentFootnote { font-size: 0.875rem; }
 .page[data-story-id="message"] { background: #e3d3b8; }
 .signoff { font: italic 400 1.75rem/1.2 var(--display); }
 .messageSignature { font: 400 3rem/1.1 var(--display); }
+.messageEditorial:has(.messagePhoto) { height: 100%; min-height: 18rem; }
+.messagePhoto { position: relative; flex: 1; min-height: 10rem; width: 100%; margin: 0; }
+.photoSignature { font: 400 1.25rem/1.1 var(--display); }
+.closingBlessing { font: italic 400 1.125rem/1.3 var(--display); max-width: 23ch; }
+.topLine .musicButton { font: 400 0.625rem/1.5 var(--issue-sans); padding-inline: 0.5rem; }
 .retryButton { position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%); border: 1px solid currentColor; background: var(--issue-paper); padding: 0.5rem 1rem; font-size: 0.8125rem; white-space: nowrap; }
 .videoStory { position: absolute; inset: 0; background: #302c27; color: var(--white); }
 .videoStory video { width: 100%; height: 100%; object-fit: cover; }
@@ -84,6 +100,7 @@
 .videoControls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
 .videoControls button { min-width: 44px; }
 .videoCaption button { color: var(--white); background: #302c27cc; border: 1px solid #ffffff9c; padding: 0.4rem 0.75rem; font-size: 0.75rem; }
+.closing { gap: 0.65rem; }
 .closing h3 { font: 400 2.875rem/1 var(--display); }
 .closingNote { font-size: 0.875rem; max-width: 28ch; }
 .date { font: 400 0.75rem/1.6 var(--issue-sans); }
@@ -116,12 +133,15 @@
 .staticEdition { display: grid; gap: 2rem; }
 .staticEdition > div { border-top: 1px solid var(--issue-bronze); padding-top: 1rem; }
 .staticEdition .photoFrame { min-height: 18rem; }
+.staticEdition .historySpread { height: auto; }
+.staticEdition .historyImages { min-height: 30rem; }
+.staticEdition .messagePhoto { flex: none; height: 20rem; }
 .staticEdition .cover, .staticEdition .family, .staticEdition .closing, .staticEdition .messageEditorial { gap: 1rem; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (min-width: 390px) {
   .masthead { font-size: 5rem; }
   .familyName { font-size: 2.75rem; }
-  .history > p { font-size: 2.25rem; }
+  .history > p { font-size: 1.75rem; }
   .momentHeading { font-size: 2rem; }
 }
 @media (min-width: 960px) {

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import guests from "../../src/data/guests.json";
+import { goToStory } from "./story-navigation";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const route = (slug: string) => `${basePath}/${slug}/lectura/`;
@@ -27,7 +28,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     await expect(issue).toHaveAttribute("data-story-index", "0");
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
     await expect(issue.locator('[data-story-id="history"]')).toBeVisible();
-    await issue.getByRole("button", { name: "Historia siguiente" }).click();
+    await goToStory(issue, 2);
     const family = issue.locator('[data-story-id="family"]');
     await expect(family).toContainText(guest.displayName);
     await expect(family).toContainText(guest.seats === null ? guest.seatsPendingLabel : `${guest.seats} INVITADOS`);
@@ -36,7 +37,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
     await expect(issue.locator('[data-story-id="moment"]')).toContainText("Ahora queremos escribir");
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
-    await expect(issue.locator('[data-story-id="message"]')).toContainText("Con cariño,");
+    await expect(issue.locator('[data-story-id="message"]')).toContainText("DE NUESTRA VOZ A USTEDES");
     await expect(issue.locator('[data-story-id="message"]')).toContainText("Luis & Marie");
     const editorialText = await issue.innerText();
     expect(editorialText).not.toMatch(/placeholder|video pendiente|fotografía pendiente|undefined|\bnull\b|\bNaN\b|pendiente de incorporar/i);
@@ -113,7 +114,7 @@ test("Love Issue native fullscreen includes navigation and closing invitation ac
   const issue = await start(page);
   await issue.getByRole("button", { name: "Ver stories en pantalla completa" }).click();
   await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
-  for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 5);
   await expect(issue.getByRole("link", { name: "Ver la invitación", exact: true })).toBeVisible();
   await issue.getByRole("link", { name: "Ver la invitación", exact: true }).click();
   await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
@@ -128,7 +129,7 @@ test("Love Issue share fallback copies the same personalized Pages URL", async (
     } });
   });
   const issue = await start(page, "giovanna");
-  for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 5);
   await issue.getByRole("button", { name: "Copiar enlace" }).click();
   await expect(issue).toContainText("Enlace copiado.");
   expect(await page.evaluate(() => document.documentElement.dataset.copied)).toBe("https://marieannegrace.github.io/boda/giovanna/");
@@ -142,7 +143,7 @@ test("Love Issue clipboard failure exposes a selectable personalized link", asyn
     } });
   });
   const issue = await start(page, "giovanna");
-  for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 5);
   await issue.getByRole("button", { name: "Copiar enlace", exact: true }).click();
   await expect(issue).toContainText("No se pudo copiar automáticamente");
   await expect(issue.getByRole("textbox", { name: "Enlace de tu carta" })).toHaveValue("https://marieannegrace.github.io/boda/giovanna/");
@@ -156,7 +157,7 @@ test("Love Issue Web Share receives selected guest URL, and failed sharing offer
     } });
   });
   const issue = await start(page, "mercedes");
-  for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 5);
   await issue.getByRole("button", { name: "Compartir", exact: true }).click();
   const data = JSON.parse(await page.evaluate(() => document.documentElement.dataset.shared ?? "{}"));
   expect(data.url).toBe("https://marieannegrace.github.io/boda/mercedes/");
@@ -180,14 +181,14 @@ test("Love Issue is readable without JavaScript and fits 320px through desktop",
     const staticPage = await context.newPage();
     await staticPage.goto(`${test.info().project.use.baseURL}/mariayroberto/lectura/`);
     await expect(staticPage.locator("noscript > div")).toContainText("María y Roberto");
-    await expect(staticPage.locator("noscript > div")).toContainText("Nos encantará compartir");
+    await expect(staticPage.locator("noscript > div")).toContainText("Gracias por acompañarnos en este camino.");
     await expect(staticPage.locator("noscript").getByRole("link", { name: "Ver la invitación" })).toBeVisible();
   } finally { await context.close(); }
 });
 
-test("Love Issue full automatic recap has six 5-second pages and stops on the invitation cover", async ({ page }) => {
-  test.setTimeout(40000);
-  const issue = await start(page, "roberto", false);
+test("Love Issue full automatic recap retains six segments and stops on the invitation cover", async ({ page }) => {
+  test.setTimeout(45000);
+  const issue = await start(page, "mercedes", false);
   const begun = Date.now();
   for (let i = 1; i < 6; i++) await expect(issue).toHaveAttribute("data-story-index", String(i), { timeout: 6500 });
   const closingAt = Date.now() - begun;
@@ -201,7 +202,7 @@ test("Love Issue full automatic recap has six 5-second pages and stops on the in
 test("Love Issue 200-percent text remains readable inside the story without horizontal overflow", async ({ page }) => {
   const issue = await start(page, "florisyabsalon");
   await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
-  for (let i = 0; i < 2; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await goToStory(issue, 2);
   const family = issue.locator('[data-story-id="family"]');
   expect(await issue.getByRole("region", { name: /THE LOVE ISSUE, edición/ }).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await family.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);

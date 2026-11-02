@@ -49,7 +49,7 @@ for (const guest of recipients) {
       if (width < 960) expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
       expect(await page.getByRole("link", { name: /Confirmar por WhatsApp/ }).getAttribute("href")).toContain(encodeURIComponent(guest.displayName));
       await expect(page.locator("#postboda")).not.toContainText("Desayuno junto a la piscina");
-      await expect(page.locator("#video")).toContainText("Con cariño,");
+      await expect(page.locator("#video")).toContainText("DE NUESTRA VOZ A USTEDES");
       expect(media).toEqual([]);
       expect(errors).toEqual([]);
       await page.reload();

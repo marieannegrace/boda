@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { availableMedia, resolveStoryVideo, resolveStoryImages } from "../src/lib/story-media.mjs";
+import { availableMedia, resolveStoryVideo, resolveStoryImages, discoverStoryPhotos, photoEdition, historyPages } from "../src/lib/story-media.mjs";
 
 const config = JSON.parse(await readFile(new URL("../src/data/stories.json", import.meta.url), "utf8"));
 const guests = JSON.parse(await readFile(new URL("../src/data/guests.json", import.meta.url), "utf8"));
@@ -35,6 +35,41 @@ test("the data directory contains only one guest source", async () => {
     if (JSON.stringify(json).includes('"slug":"mariayroberto"')) sources.push(file);
   }
   assert.deepEqual(sources, ["guests.json"]);
+});
+
+test("photo classification ignores decorative prefixes and keeps the two Roberto editions separate", () => {
+  for (const [file, edition] of [
+    ["K luis y marie 2.JPG", "global"], ["R roberto 3.jpg", "roberto"],
+    ["& maria y roberto 10.JPG", "mariayroberto"], ["T giovanna 3.jpg", "giovanna"],
+    ["F absalon y flor 01.jpg", "florisyabsalon"], ["M amparo y eduardo.JPG", "amparoyeduardo"],
+    ["roberto  y maria 10.jpg", "mariayroberto"], ["mercedes 1.jpg", "mercedes"],
+    ["not-giovanna-family.jpg", "giovanna"], ["K unknown.jpg", null],
+  ]) assert.equal(photoEdition(file), edition);
+});
+
+test("every real photo is associated and retained in natural order without any artificial cap", async () => {
+  const files = await discoverStoryPhotos();
+  assert.ok(files.length >= 45);
+  assert.ok(files.every((item) => item.edition));
+  assert.equal(files.filter((item) => item.edition === "global").length, 2);
+  const selected = files.filter((item) => item.edition === "giovanna");
+  assert.ok(selected.findIndex((item) => item.file === "giovanna 3.jpg") < selected.findIndex((item) => item.file === "giovanna 10.jpg"));
+  for (const edition of new Set(files.map((item) => item.edition))) {
+    const photos = files.filter((item) => item.edition === edition);
+    const pages = historyPages(photos);
+    assert.equal(pages[0].kind, "intro");
+    assert.deepEqual(pages.flatMap((page) => page.photos), photos);
+    assert.ok(pages.every((page) => page.photos.length <= 2));
+  }
+  for (const count of [0, 1, 9, 15, 20]) {
+    const photos = Array.from({ length: count }, (_, i) => ({ file: `test-${i}.jpg` }));
+    assert.deepEqual(historyPages(photos).flatMap((page) => page.photos), photos);
+  }
+});
+
+test("audio is optional and restricted to a local MP3", async () => {
+  assert.equal(await availableMedia("/audio/missing-track.mp3", "audio"), null);
+  await assert.rejects(availableMedia("/audio/../private.mp3", "audio"), /Invalid story audio path/);
 });
 
 test("upload conventions discover only the selected family's photos and poster without editing JSON", async () => {

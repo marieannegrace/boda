@@ -66,18 +66,18 @@ Sin JavaScript, el mismo botón funciona como formulario GET explícito a `/{slu
 
 ## The Love Issue — stories personalizadas
 
-La escena `#video` ya no es un reproductor tradicional: `LoveIssue.tsx` presenta seis páginas 9:16 como una edición coleccionable. Conserva el identificador del capítulo y las otras catorce escenas para no romper enlaces existentes.
+La escena `#video` ya no es un reproductor tradicional: `LoveIssue.tsx` presenta seis segmentos 9:16 como una edición coleccionable. Conserva el identificador del capítulo, su motor/gestos y las otras catorce escenas para no romper enlaces existentes. History tiene páginas internas, no una galería paralela.
 
 | Story | Función | Medio actual |
 | --- | --- | --- |
 | Portada | THE LOVE ISSUE → Special Wedding Edition → volumen/lugar/año | Tipografía y papel CSS |
-| Historia | La memoria compartida con el destinatario | Frases animadas |
+| Historia | La memoria compartida con el destinatario | Texto inicial → todas las fotos de la edición, de una o dos → pausa tipográfica |
 | Family Edition | Dedicar la edición y mostrar cupos | Datos del invitado actual |
-| Una nueva página | Preparar el encuentro | Composición tipográfica o fotografía auténtica si existe |
-| Mensaje personal | Luis y Marie hablan directamente | Video personal/general o firma editorial «Con cariño, Luis & Marie» |
-| El encuentro | Fecha, lugar, hashtag, invitación y compartir | Portada final y acciones |
+| Una nueva página | Preparar el encuentro | Primer retrato global de Luis & Marie, sin recortar |
+| Mensaje personal | Luis y Marie hablan directamente | Video → segundo retrato global/foto → firma editorial si no hay medios |
+| El encuentro | Gratitud, fe, esperanza y amor; datos del encuentro | Cierre tipográfico, invitación y compartir |
 
-**Abrir mi edición** inicia la secuencia, nunca la carga de la landing. Cada página tipográfica tiene 5 s: 30 s nominales, sin bucle. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración y avanza en `ended`, sin cortar la voz a los 5 s; si dura más, el recap también dura más.
+**Abrir mi edición** inicia la secuencia, nunca la carga de la landing. Cada página tiene la duración de su segmento en `slides` (5 s actualmente). Sin fotos ni video son 30 s nominales; cada página interna de History añade su tiempo, sin límite artificial de fotos. El segundo segmento refleja el avance acumulado por esas páginas; los seis segmentos principales no cambian. Anterior/siguiente, gestos y flechas recorren primero las páginas internas y después el segmento siguiente; volver desde Family Edition recupera la última página de History. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración y avanza en `ended`, sin cortar la voz a los 5 s.
 
 Toques a izquierda/derecha, swipe horizontal y botones anterior/siguiente recorren las páginas. Mantener presionado pausa texto, progreso y video; soltar reanuda. El scroll vertical sigue siendo nativo en móvil. Flechas del teclado navegan, espacio pausa/continúa, los controles tienen foco visible y no hay trampa de Tab. Avance automático es opcional; se pausa fuera de pantalla, con pestaña oculta, al mantener presionado o cuando el teclado está dentro de los controles. Reduced motion desactiva autoplay/animación y deja navegación y video bajo gesto explícito. Sin JS se muestra una edición completa de lectura, no controles inertes.
 
@@ -88,39 +88,78 @@ Pantalla completa usa la API nativa, incluye controles y acciones finales y perm
 - `src/data/stories.json`: textos compartidos, orden, tiempos, edición, foto general y `generalVideo/generalPoster/generalCaptions/generalTranscript`. Están en `null` hasta recibir medios reales.
 - `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `poster`, `captions`, `transcript`. No crear un segundo listado de familias.
 - Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza la despedida editorial. Estos overrides no obligan a modificar componentes.
-- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → firma editorial. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → fotografía disponible → firma editorial. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
 - Si existen `captions`, el botón **CC** permite activarlos/desactivarlos. `transcript` habilita **Leer el mensaje**. Sin esos datos no aparecen los controles.
 - El cliente recibe solo la edición actual. El video no se monta ni tiene `src` antes de la quinta página/inicio explícito; usa preload none, muted, playsInline, sonido y play/pausa discretos. Pausa/libera el recurso al salir y ofrece reintento/continuación ante fallos. Nunca solicita videos de otras familias.
 - Marcos, textura y ornamentos de borde están hechos con CSS. Portada y Family Edition incluyen `VOL. 01` y `NO. 001`; los metadatos usan sans-serif y los titulares serif. El formato vertical permanece centrado en desktop. Las fotos reales reciben un tratamiento cálido leve, sin parallax móvil.
 
 ### Subir medios sin modificar componentes
 
-Las tres carpetas ya existen dentro de `public/`. Son opcionales y no contienen fotos ni videos inventados.
+Las carpetas ya existen dentro de `public/`. Los 45 archivos reales recibidos en `public/posters/` se conservan byte a byte; los videos y la música definitivos todavía no están presentes.
 
 | Carpeta física | Nombre que se detecta automáticamente | Uso |
 | --- | --- | --- |
 | `public/videos/` | `{slug}.mp4` | Mensaje de la familia correspondiente; las rutas ya están en `guests.json` |
 | `public/posters/` | `{slug}.jpg` | Poster del video personal, salvo override explícito |
+| `public/posters/` | Nombres de personas/familias, incluso espacios y extensión JPG/JPEG/PNG/WebP | Todas las fotos de History de su edición |
 | `public/images/` | `{slug}.jpg` | Foto de la edición personal |
 | `public/images/` | `luis-marie.jpg` | Foto compartida si no hay foto personal |
 | `public/images/` | `history.jpg` | Foto secundaria de la segunda story |
 | `public/images/` | `cover.jpg` | Última alternativa de foto compartida |
+| `public/audio/` | `the-love-issue.mp3` | Música ambiental global opcional |
 
 Ejemplo: subir `public/videos/mariayroberto.mp4` y opcionalmente `public/posters/mariayroberto.jpg`; después del build aparecerán automáticamente en `/mariayroberto/`. No copiar los JSON de invitados. En Pages hace falta **commit/push a `main`** para ejecutar el build y publicar los archivos: no hay detección de archivos nuevos en el sitio ya exportado.
 
-La prioridad de foto es override personal → `{slug}.jpg` → `stories.photo` → `luis-marie.jpg` → `cover.jpg`. El poster usa override explícito → `posters/{slug}.jpg` → foto seleccionada → fondo editorial. La foto de historia es independiente. Nunca se buscan archivos de otra familia.
+La detección por nombre está en el mismo módulo `story-media.mjs`. No contiene otro guest map: nombres/cupos siguen viniendo exclusivamente de `guests.json`. Ignora mayúsculas, acentos y prefijos decorativos aislados (`R`, `F`, `K`, `M`, `T`, `&`). Asocia `giovanna`, `amparo`+`eduardo`, `flor`/`floris`+`absalon`, `mercedes`, y separa `roberto` sin `maria` de `roberto`+`maria`. `luis`+`marie` es material global. Los nombres no reconocidos generan una advertencia en preparación, nunca se asignan por azar.
+
+El orden es natural, numérico y determinista, normalizando espacios: 2 antes de 10; nombres sin número primero. **No se descarta ninguna foto ni se deduplican archivos**. La primera foto tiene página propia; el resto se agrupa de una o dos. Dos retratos verticales pueden convivir lado a lado; formatos mixtos/horizontales se apilan con espacio individual. Se intercala una pausa tipográfica en historias largas. Los collages recibidos también se muestran íntegros.
+
+Material actual por edición: Roberto 8 fotos; María y Roberto 11; Giovanna 13; Amparo y Eduardo 1; Floris y Absalon 10; Mercedes 0. Las 43 fotos específicas más los dos retratos globales suman los 45 archivos recibidos. No se inventan fotos para Mercedes. `luis y marie.jpg` aparece en Moment; `luis y marie 2.JPG` en el mensaje sin video. No se repiten en portada/cierre ni reemplazan las fotos de History.
+
+Sin retratos globales, se mantiene la prioridad anterior de foto: override personal → `/images/{slug}.jpg` → `stories.photo` → `/images/luis-marie.jpg` → `/images/cover.jpg`. El poster usa override explícito → `/posters/{slug}.jpg` → fotografía disponible → fondo editorial. Nunca se buscan archivos de otra familia.
+
+### Encuadres, focal points y derivados web
+
+`npm run photos:prepare` (también `predev`/`prebuild`) prepara un catálogo privado en `.cache/story-photos.json` y derivados WebP responsivos de hasta 480/960/1440 px en `public/images/stories/`, **sin ampliar, sobrescribir, renombrar o recortar los originales**. Ambas salidas son regenerables y están ignoradas por Git. En el navegador se usa `picture/srcset`, dimensiones reservadas y carga lazy del medio activo; solo se prepara la primera imagen de la página siguiente de History. El cliente recibe exclusivamente fotos de su edición y las globales necesarias.
+
+Los archivos recibidos miden entre 347 y 1625 px de ancho, no 4000×3000. No se consideran sustitutos de esos masters. Si se entregan masters mayores, las mismas reglas generan sus derivados sin alterar el original.
+
+Tratamientos por foto en `stories.json`, sin panel administrativo:
+
+```json
+{
+  "photography": {
+    "historyReflection": "Algunos recuerdos se quedan con nosotros.",
+    "overrides": {
+      "giovanna 3.jpg": {
+        "treatment": "memory",
+        "focalPoint": { "x": 50, "y": 42 },
+        "alt": "Descripción revisada de esta fotografía."
+      }
+    }
+  }
+}
+```
+
+Sin override, horizontales usan `memory` y verticales/cuadradas `editorial`, siempre con `object-fit: contain`, sin zoom y focal point 50/50. `memory` deja papel alrededor de la foto; `editorial` conserva la imagen completa con aire tipográfico. `hero` permite `cover` y un zoom mínimo **solo si se aprueba que el recorte es seguro**. Ninguna de las 45 fotos usa hero por defecto. Los focal points son porcentajes 0–100; modificar la configuración y reconstruir, no los originales.
+
+### Música ambiental
+
+Agregar `public/audio/the-love-issue.mp3` y reconstruir basta. El botón **Activar música / Silenciar música** solo aparece si existe el archivo. La música requiere una acción explícita, usa loop y volumen 0.16 (configurable entre 0 y 0.3), y conserva la posición entre páginas y al silenciar/reactivar. Se pausa al escuchar el audio de un video, al pausar/mantener presionado, salir de pantalla o esconder la pestaña; se restaura si seguía habilitada, incluso al terminar un video en modo manual. No se monta un audio por slide. Un bloqueo de reproducción permite reintentar; un archivo roto notifica el fallo sin impedir el recorrido. La ausencia del MP3 no muestra controles rotos.
 
 Publicar MP4 H.264 vertical 1080×1920, idealmente 15–30 s, comprimido y con fast-start. El video usa `object-fit: cover`: mantener rostros y texto esencial dentro del área central. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT en `/videos/nombre.vtt` mediante `captions`/`generalCaptions`; transcripción revisada en `transcript`/`generalTranscript`.
 
 ```powershell
 npm.cmd run test:stories
 $env:BETA_URL = "http://127.0.0.1:3002/boda"
-npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts --workers=1
+npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts stories-photos.spec.ts --workers=1
 ```
 
-Las pruebas cubren los seis destinatarios, seis páginas, 30 s nominales, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build de fixture local: un MP4 sintético 9:16 de 7 s, poster y VTT (`tests/create-story-fixture.mjs`). Esa corrida verifica reproducción real del navegador, duración/ended, sonido, pausa, CC/transcripción y fallos de video/foto. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions`, `generalTranscript` y `photo` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los tres archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+Las pruebas cubren los seis destinatarios/segmentos, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-photos.spec.ts` recorre todas las fotos de cada edición en 320/390/768/1440 px y verifica proporciones completas, ausencia de transformaciones que recorten personas, orden/cobertura, aislamiento de peticiones y progreso/pausa de History. Las capturas complementan estas comprobaciones, no identifican personas automáticamente.
 
-Validación de esta entrega: typecheck, lint y export estático aprobados; 13 smoke, 7 QR, 5 selección/configuración de stories y 48 escenarios de navegador (32 de la invitación + 16 de stories/touch) verificados. Además pasaron 5 escenarios con MP4/VTT sintéticos y una comprobación de subida por convención de foto, poster y video personal, sin editar el JSON del invitado ni mezclar subtítulos/transcripción generales. Se retiraron los seis archivos temporales y se reconstruyó el export sin medios de prueba. Se verificaron fallback `default` en 404, clipboard denegado, CC y lectura al 200 %. La evidencia no reemplaza QA en iOS/Android reales ni valida videos personales que aún no se han recibido.
+`stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build local: MP4 sintético 9:16 de 7 s, poster, VTT y MP3 silencioso (`tests/create-story-fixture.mjs`). Verifica duración/ended, sonido, pausa, CC/transcripción, fallos de video/foto, música continua, pausa al escuchar video, restauración y bloqueo de autoplay. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions` y `generalTranscript` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los cuatro archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+
+La evidencia de navegador no reemplaza QA en iOS/Android reales ni valida videos personales o una pista musical definitiva que aún no se han recibido. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen.
 
 ## Recorrido y función narrativa
 

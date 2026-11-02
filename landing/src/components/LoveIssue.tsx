@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import type { StoriesContent, StorySlide } from "@/lib/stories";
+import type { StoriesContent, StorySlide, StoryPhoto as Photo } from "@/lib/stories";
 import { assetPath } from "@/lib/asset-path";
 import styles from "./LoveIssue.module.css";
 
@@ -22,21 +22,33 @@ function subscribeVisibility(callback: () => void) {
 }
 function subscribeSharing() { return () => {}; }
 
-function StoryPhoto({ source, alt, className }: { source: string; alt: string; className: string }) {
+function photoSrcSet(photo: Photo) {
+  return photo.variants.map((variant) => `${assetPath(variant.source)} ${variant.width}w`).join(", ");
+}
+
+function StoryPhoto({ source, alt, className, photo }: { source: string; alt: string; className: string; photo?: Photo }) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return (
-    <figure className={className}>
-      <Image src={assetPath(source)} alt={alt} fill sizes="(min-width: 768px) 400px, 94vw"
+    <figure className={className} data-photo-file={photo?.file} data-treatment={photo?.treatment ?? "editorial"}>
+      <picture>
+        {photo ? <source srcSet={photoSrcSet(photo)} sizes="(min-width: 768px) 400px, 94vw" type="image/webp" /> : null}
+        <Image src={assetPath(source)} alt={alt} fill sizes="(min-width: 768px) 400px, 94vw"
+        style={{ objectFit: photo?.treatment === "hero" ? "cover" : "contain",
+          objectPosition: `${photo?.focalPoint.x ?? 50}% ${photo?.focalPoint.y ?? 50}%` }}
         loading="lazy" data-story-photo onError={() => {
           console.error("Story image failed to load:", source);
           setFailed(true);
         }} />
+      </picture>
     </figure>
   );
 }
 
-function StoryPage({ content, slide, active = true }: { content: StoriesContent; slide: StorySlide; active?: boolean }) {
+function StoryPage({ content, slide, active = true, historyIndex = 0 }: {
+  content: StoriesContent; slide: StorySlide; active?: boolean; historyIndex?: number;
+}) {
+  const historyPage = content.historyPages[historyIndex];
   return (
     <>
       {slide.id === "cover" ? (
@@ -52,13 +64,33 @@ function StoryPage({ content, slide, active = true }: { content: StoriesContent;
           <p className={styles.coverDedication} data-story-reveal>Para {content.recipient}</p>
         </div>
       ) : null}
-      {slide.id === "history" ? (
+      {slide.id === "history" && historyPage.kind === "intro" ? (
         <div className={styles.history}>
+          <h3 className={styles.historyLabel}>Nuestra historia contigo</h3>
           <span className={styles.largeQuote} aria-hidden="true">“</span>
           {slide.lines.map((line) => <p key={line} data-story-reveal>{line}</p>)}
           <p className={styles.signature} data-story-reveal>{content.couple}</p>
           {active && content.historyPhoto ? <StoryPhoto source={content.historyPhoto} alt="Una memoria de Luis y Marie."
             className={styles.historyPhoto} /> : null}
+        </div>
+      ) : null}
+      {slide.id === "history" && historyPage.kind === "photos" ? (
+        <div className={styles.historySpread} data-photo-count={historyPage.photos.length}>
+          <h3 className={styles.historyLabel}>Nuestra historia contigo</h3>
+          <div className={styles.historyImages} data-layout={historyPage.photos.length === 2
+            && historyPage.photos.every((photo) => photo.width < photo.height * 0.9) ? "paired-portraits" : "stacked"}>
+            {active ? historyPage.photos.map((photo) => <StoryPhoto key={photo.file} source={photo.source}
+              alt={photo.alt} photo={photo} className={styles.memoryPhoto} />) : null}
+          </div>
+          {historyIndex === 1 ? <p className={styles.memoryCaption}>{content.historyReflection}</p> : null}
+          <p className={styles.memoryNumber}>{historyIndex} / {content.historyPages.length - 1}</p>
+        </div>
+      ) : null}
+      {slide.id === "history" && historyPage.kind === "reflection" ? (
+        <div className={styles.historyReflection}>
+          <span className={styles.rule} aria-hidden="true" />
+          <p>{content.historyReflection}</p>
+          <p className={styles.signature}>{content.couple}</p>
         </div>
       ) : null}
       {slide.id === "family" ? (
@@ -75,7 +107,8 @@ function StoryPage({ content, slide, active = true }: { content: StoriesContent;
       {slide.id === "moment" ? (
         <div className={styles.moment}>
           <p className={styles.momentHeading} data-story-reveal>{slide.lines[0]}</p>
-          {active && content.photo ? <StoryPhoto source={content.photo} alt={content.photoAlt} className={styles.photoFrame} /> : null}
+          {active && (content.momentPhoto || content.photo) ? <StoryPhoto source={content.momentPhoto?.source ?? content.photo!}
+            alt={content.momentPhoto?.alt ?? content.photoAlt} photo={content.momentPhoto ?? undefined} className={styles.photoFrame} /> : null}
           <span className={styles.momentMonogram} aria-hidden="true" data-story-reveal>L &amp; M</span>
           <p className={styles.momentFootnote} data-story-reveal>{slide.lines[1]}</p>
         </div>
@@ -83,9 +116,12 @@ function StoryPage({ content, slide, active = true }: { content: StoriesContent;
       {slide.id === "message" ? (
         <div className={styles.messageEditorial}>
           <p className={styles.special} data-story-reveal>{content.messageHeading}</p>
-          <span className={styles.rule} aria-hidden="true" data-story-reveal />
-          <p className={styles.signoff} data-story-reveal>{content.messageSignoff}</p>
-          <h3 className={styles.messageSignature} data-story-reveal>{content.couple}</h3>
+          {active && (content.messagePhoto || content.photo) ? (
+            <StoryPhoto source={content.messagePhoto?.source ?? content.photo!} alt={content.messagePhoto?.alt ?? content.photoAlt}
+              photo={content.messagePhoto ?? undefined} className={styles.messagePhoto} />
+          ) : <span className={styles.rule} aria-hidden="true" data-story-reveal />}
+          {!content.messagePhoto && !content.photo ? <p className={styles.signoff} data-story-reveal>{content.messageSignoff}</p> : null}
+          <h3 className={content.messagePhoto || content.photo ? styles.photoSignature : styles.messageSignature} data-story-reveal>{content.couple}</h3>
         </div>
       ) : null}
       {slide.id === "closing" ? (
@@ -96,6 +132,7 @@ function StoryPage({ content, slide, active = true }: { content: StoriesContent;
           <p className={styles.colophon} data-story-reveal>{content.location}</p>
           <span className={styles.rule} aria-hidden="true" data-story-reveal />
           <p className={styles.closingNote} data-story-reveal>{slide.lines[0]}</p>
+          <p className={styles.closingBlessing} data-story-reveal>{slide.lines[1]}</p>
           <p className={styles.editionTitle} data-story-reveal>{content.title}</p>
           <p className={styles.hashtag} data-story-reveal>{content.hashtag}</p>
         </div>
@@ -107,6 +144,7 @@ function StoryPage({ content, slide, active = true }: { content: StoriesContent;
 export default function LoveIssue({ content }: { content: StoriesContent }) {
   const [started, setStarted] = useState(false);
   const [index, setIndex] = useState(0);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [automaticChoice, setAutomaticChoice] = useState(true);
   const [paused, setPaused] = useState(false);
   const [holding, setHolding] = useState(false);
@@ -120,6 +158,9 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const [shareFallback, setShareFallback] = useState(false);
   const [localShareUrl, setLocalShareUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [musicFailed, setMusicFailed] = useState(false);
+  const musicPlayer = useRef<HTMLAudioElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const panels = useRef<HTMLDivElement>(null);
@@ -139,6 +180,46 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const last = index === content.slides.length - 1;
   const videoFailed = mediaState === "error";
   const wantsVideo = !paused && (automatic || videoIntent);
+  const historyCount = content.historyPages.length;
+  const inHistory = slide.id === "history";
+  const musicDucked = showVideo && !muted && mediaState === "playing";
+
+  useEffect(() => {
+    if (!started || !inHistory) return;
+    const next = content.historyPages[historyIndex + 1]?.photos[0];
+    if (!next) return;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = assetPath(next.source);
+    link.imageSrcset = photoSrcSet(next);
+    link.imageSizes = "(min-width: 768px) 400px, 94vw";
+    document.head.append(link);
+    return () => link.remove();
+  }, [started, inHistory, historyIndex, content.historyPages]);
+
+  useEffect(() => {
+    const audio = musicPlayer.current;
+    if (!audio || musicFailed) return;
+    audio.volume = content.musicVolume;
+    if (!musicEnabled || suspended || musicDucked || !started) {
+      audio.pause();
+      return;
+    }
+    let cancelled = false;
+    audio.play().catch((error: unknown) => {
+      if (cancelled || (error instanceof DOMException && error.name === "AbortError")) return;
+      console.error("Story music playback failed:", error);
+      setMusicEnabled(false);
+      if (error instanceof DOMException && error.name === "NotAllowedError" && !audio.error) {
+        setNotice("La música no pudo iniciarse. Puedes volver a activarla con el botón de música.");
+      } else {
+        setMusicFailed(true);
+        setNotice("No se pudo cargar la música. Puedes continuar recorriendo la edición.");
+      }
+    });
+    return () => { cancelled = true; audio.pause(); };
+  }, [musicEnabled, musicFailed, suspended, musicDucked, started, content.musicVolume]);
 
   useEffect(() => {
     const container = root.current;
@@ -196,10 +277,10 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     }, slide.id === "cover" ? 0.4 : 0.12);
     const title = active.querySelector("[data-story-title]");
     if (title) timeline.from(title, { letterSpacing: "0.08em", duration: 1.05, ease: "power3.out" }, 0.22);
-    const photo = active.querySelector("[data-story-photo]");
-    if (photo) timeline.from(photo, { scale: 1.03, duration: 3, ease: "power2.inOut" }, 0.3);
+    const photo = active.querySelector('[data-treatment="hero"] [data-story-photo]');
+    if (photo) timeline.from(photo, { scale: 1.02, duration: 3, ease: "power2.inOut" }, 0.3);
     return () => { sequence.current = null; };
-  }, { scope: root, dependencies: [index, started, reduced], revertOnUpdate: true });
+  }, { scope: root, dependencies: [index, historyIndex, started, reduced], revertOnUpdate: true });
 
   useEffect(() => {
     if (suspended) sequence.current?.pause();
@@ -244,29 +325,41 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
         progress = Math.min(1, elapsed.current / slide.duration);
         if (progress >= 1) {
           finished = true;
-          if (!last) {
+          if (inHistory && historyIndex < historyCount - 1) {
+            elapsed.current = 0;
+            setHistoryIndex((current) => current + 1);
+          } else if (!last) {
             elapsed.current = 0;
             setIndex((current) => current + 1);
           }
         }
       }
       previous = now;
-      if (bar) bar.style.transform = `scaleX(${progress})`;
+      if (bar) bar.style.transform = `scaleX(${inHistory ? (historyIndex + progress) / historyCount : progress})`;
       if (!finished) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [index, started, suspended, automatic, showVideo, mediaState, slide.duration, last]);
+  }, [index, historyIndex, historyCount, inHistory, started, suspended, automatic, showVideo, mediaState, slide.duration, last]);
 
   function go(next: number) {
     const target = Math.max(0, Math.min(content.slides.length - 1, next));
     if (target === index) return;
+    if (inHistory && ((next > index && historyIndex < historyCount - 1) || (next < index && historyIndex > 0))) {
+      elapsed.current = 0;
+      const page = historyIndex + (next > index ? 1 : -1);
+      setHistoryIndex(page);
+      if (bars.current[index]) bars.current[index]!.style.transform = `scaleX(${page / historyCount})`;
+      return;
+    }
     elapsed.current = 0;
+    const nextHistory = target === 1 && next < index ? historyCount - 1 : 0;
+    setHistoryIndex(nextHistory);
     setIndex(target);
     setVideoIntent(false);
     setMediaState("loading");
     for (const [i, bar] of bars.current.entries()) {
-      if (bar) bar.style.transform = `scaleX(${i < target ? 1 : 0})`;
+      if (bar) bar.style.transform = `scaleX(${i < target ? 1 : i === target && target === 1 ? nextHistory / historyCount : 0})`;
     }
     setNotice("");
     setShareFallback(false);
@@ -345,7 +438,14 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const shareUrl = content.shareUrl ?? localShareUrl;
   return (
     <div ref={root} className={styles.issue} data-love-issue data-started={started} data-story-index={index}
+      data-history-index={historyIndex} data-history-count={historyCount}
       data-automatic={automatic} data-suspended={suspended} data-holding={holding}>
+      {content.music && !musicFailed ? <audio ref={musicPlayer} src={started ? assetPath(content.music) : undefined}
+        loop preload="none" onError={() => {
+          console.error("Story music failed to load:", content.music);
+          setMusicFailed(true); setMusicEnabled(false);
+          setNotice("No se pudo cargar la música. Puedes continuar recorriendo la edición.");
+        }} /> : null}
       <div className={styles.issueIntro}>
         <h2 id="video-heading">{content.title}</h2>
         <p>{content.subtitle}</p>
@@ -378,6 +478,11 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
             </ol>
             <div className={styles.topLine}>
               <span>{content.title}</span>
+              {content.music && !musicFailed ? <button className={styles.musicButton} aria-label={musicEnabled ? "Silenciar música" : "Activar música"}
+                aria-pressed={musicEnabled} onClick={() => {
+                  if (!started) begin();
+                  setMusicEnabled((value) => !value);
+                }}>{musicEnabled ? "Música: sí" : "Música: no"}</button> : null}
               <button type="button" aria-label={isFullscreen ? "Salir de pantalla completa" : "Ver stories en pantalla completa"} onClick={fullscreen}>⛶</button>
             </div>
           </div>
@@ -413,7 +518,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                   className={styles.page} aria-label={item.label}>
                   <span className={styles.paperTexture} data-story-texture aria-hidden="true" />
                   <span className={styles.cornerFrame} data-story-ornament aria-hidden="true"><i /><i /><i /><i /></span>
-                  {item.id !== "message" || !showVideo ? <StoryPage content={content} slide={item} active={started && index === i} /> : null}
+                  {item.id !== "message" || !showVideo ? <StoryPage content={content} slide={item} active={started && index === i} historyIndex={historyIndex} /> : null}
                   {item.id === "message" && showVideo && content.video ? (
                     <div className={styles.videoStory}>
                       <video ref={player} src={assetPath(content.video.source)} muted={muted} playsInline
@@ -424,7 +529,11 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                         onWaiting={() => setMediaState("loading")}
                         onStalled={() => setNotice("La conexión está tardando. Puedes pausar el mensaje o continuar con la invitación.")}
                         onError={mediaFailed}
-                        onEnded={() => { if (automatic && !suspended) go(index + 1); }}>
+                        onEnded={() => {
+                          setMediaState("ready");
+                          setVideoIntent(false);
+                          if (automatic && !suspended) go(index + 1);
+                        }}>
                         {content.video.captions ? <track kind="captions" src={assetPath(content.video.captions)} srcLang="es" label="Español" default /> : null}
                       </video>
                       <div className={styles.videoCaption}>
@@ -467,7 +576,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
             {!started ? <button className={styles.startButton} onClick={begin}>Abrir mi edición</button> : (
               <div className={styles.navigation}>
                 <button aria-label="Historia anterior" disabled={index === 0} onClick={() => go(index - 1)}>‹</button>
-                <span aria-live="polite" aria-atomic="true">{index + 1} / {content.slides.length}<span className={styles.srOnly}> · {slide.label}</span></span>
+                <span aria-live="polite" aria-atomic="true">{index + 1} / {content.slides.length}<span className={styles.srOnly}> · {slide.label}{inHistory ? `, página ${historyIndex + 1} de ${historyCount}` : ""}</span></span>
                 <button aria-label={paused ? "Continuar stories" : "Pausar stories"} onClick={() => setPaused((value) => !value)}>{paused ? "Continuar" : "Pausa"}</button>
                 <button aria-label="Historia siguiente" disabled={last} onClick={() => go(index + 1)}>›</button>
               </div>
@@ -499,7 +608,8 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
           {content.slides.map((item) => (
             <div key={item.id}>
               <h3>{item.label}</h3>
-              <StoryPage content={content} slide={item} />
+              {item.id === "history" ? content.historyPages.map((_, page) => <StoryPage key={page} content={content} slide={item} historyIndex={page} />)
+                : <StoryPage content={content} slide={item} />}
               {item.id === "message" && content.video ? <a href={assetPath(content.video.source)}>Abrir mensaje en video</a> : null}
             </div>
           ))}
