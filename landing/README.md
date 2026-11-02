@@ -13,7 +13,7 @@ El workflow [pages.yml](../.github/workflows/pages.yml) despliega cada push a `m
 
 `npm run build` genera los QR automáticamente mediante `prebuild` y exige una URL pública configurada cuyo subdirectorio coincida con `NEXT_PUBLIC_BASE_PATH`. Esto evita publicar un build con QR ausentes o enlaces que omitan `/boda`.
 
-Pages no ejecuta Node/SSR ni endpoints dinámicos. Las rutas desconocidas devuelven un 404 con enlace a la invitación general, en lugar del antiguo fallback dinámico. Sin JavaScript, el formulario abre `/{slug}/lectura/#saludo` (o `/lectura/` para la invitación general); conserva el gesto explícito y no depende de query params ni servidor. Con JavaScript se mantiene la apertura física original, sin navegar.
+Pages no ejecuta Node/SSR ni endpoints dinámicos. Las rutas desconocidas muestran la experiencia completa del registro `default` mediante `404.html`, sin datos de otra familia ni redirección: conservan el estado HTTP 404 propio de Pages. Sin JavaScript, el formulario abre `/{slug}/lectura/#saludo` (o `/lectura/` para la invitación general); conserva el gesto explícito y no depende de query params ni servidor. Con JavaScript se mantiene la apertura física original, sin navegar.
 
 El repositorio y Pages son públicos: HTML, datos visibles, medios y QR son accesibles públicamente. Un slug y la lógica de postboda siguen sin ser autenticación. No subir videos privados a esta modalidad.
 
@@ -73,25 +73,44 @@ La escena `#video` ya no es un reproductor tradicional: `LoveIssue.tsx` presenta
 | Portada | THE LOVE ISSUE → Special Wedding Edition → volumen/lugar/año | Tipografía y papel CSS |
 | Historia | La memoria compartida con el destinatario | Frases animadas |
 | Family Edition | Dedicar la edición y mostrar cupos | Datos del invitado actual |
-| Una nueva página | Mostrar a Luis y Marie y preparar el encuentro | Fotografía pendiente, sin stock |
-| Mensaje personal | Luis y Marie hablan directamente | Video pendiente; arquitectura personalizada/general |
+| Una nueva página | Preparar el encuentro | Composición tipográfica o fotografía auténtica si existe |
+| Mensaje personal | Luis y Marie hablan directamente | Video personal/general o firma editorial «Con cariño, Luis & Marie» |
 | El encuentro | Fecha, lugar, hashtag, invitación y compartir | Portada final y acciones |
 
 **Abrir mi edición** inicia la secuencia, nunca la carga de la landing. Cada página tipográfica tiene 5 s: 30 s nominales, sin bucle. El cierre queda disponible, sin navegar ni enviar mensajes automáticamente. Un video real usa su propia duración y avanza en `ended`, sin cortar la voz a los 5 s; si dura más, el recap también dura más.
 
 Toques a izquierda/derecha, swipe horizontal y botones anterior/siguiente recorren las páginas. Mantener presionado pausa texto, progreso y video; soltar reanuda. El scroll vertical sigue siendo nativo en móvil. Flechas del teclado navegan, espacio pausa/continúa, los controles tienen foco visible y no hay trampa de Tab. Avance automático es opcional; se pausa fuera de pantalla, con pestaña oculta, al mantener presionado o cuando el teclado está dentro de los controles. Reduced motion desactiva autoplay/animación y deja navegación y video bajo gesto explícito. Sin JS se muestra una edición completa de lectura, no controles inertes.
 
-Pantalla completa usa la API nativa, incluye controles y acciones finales y permite salir con Escape/el mismo botón. Si el navegador no la admite, informa y conserva la experiencia inline. **Ver la invitación** devuelve foco y scroll al facsímil/agenda. Compartir usa Web Share con la URL del invitado, no una ruta genérica; alternativas: WhatsApp, copiar enlace y campo seleccionable. Cancelar el menú no es un error; copiar/compartir fallidos muestran instrucciones, no una confirmación ficticia.
+Pantalla completa usa la API nativa, incluye controles y acciones finales y permite salir con Escape/el mismo botón. Si el navegador no la admite, informa y conserva la experiencia inline. **Ver la invitación** devuelve foco y scroll al facsímil/agenda. Compartir usa Web Share con la URL del invitado, no una ruta genérica; sin esa API el botón es **Copiar enlace**. Si falla, quedan WhatsApp y un campo seleccionable. Cancelar el menú no es un error; copiar/compartir fallidos muestran instrucciones, no una confirmación ficticia.
 
 ### Configurar contenido y medios
 
 - `src/data/stories.json`: textos compartidos, orden, tiempos, edición, foto general y `generalVideo/generalPoster/generalCaptions/generalTranscript`. Están en `null` hasta recibir medios reales.
 - `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `poster`, `captions`, `transcript`. No crear un segundo listado de familias.
-- Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza el texto del espacio de video pendiente. Estos overrides no obligan a modificar componentes.
-- Archivos locales: `/videos/nombre.mp4`, `/videos/nombre.vtt`, `/images/nombre.webp` (también PNG/JPG). Publicar MP4 vertical 9:16, comprimido, fast-start, poster y subtítulos/transcripción revisados.
-- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → placeholder. No mezclan poster/captions/transcript de otra familia. Foto personalizada → configuración general; si el archivo no existe, queda el espacio editorial. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza la despedida editorial. Estos overrides no obligan a modificar componentes.
+- `stories.server.ts`/`story-media.mjs` comprueban en build: video del invitado → general → firma editorial. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- Si existen `captions`, el botón **CC** permite activarlos/desactivarlos. `transcript` habilita **Leer el mensaje**. Sin esos datos no aparecen los controles.
 - El cliente recibe solo la edición actual. El video no se monta ni tiene `src` antes de la quinta página/inicio explícito; usa preload none, muted, playsInline, sonido y play/pausa discretos. Pausa/libera el recurso al salir y ofrece reintento/continuación ante fallos. Nunca solicita videos de otras familias.
-- No se generan ilustraciones para fingir botánica disponible. Los marcos y ornamentación actuales son tipográficos/CSS; fotografía y voz auténticas siguen pendientes. La foto real recibe un tratamiento cálido leve y escala 1.03 → 1.00, sin parallax móvil.
+- Marcos, textura y ornamentos de borde están hechos con CSS. Portada y Family Edition incluyen `VOL. 01` y `NO. 001`; los metadatos usan sans-serif y los titulares serif. El formato vertical permanece centrado en desktop. Las fotos reales reciben un tratamiento cálido leve, sin parallax móvil.
+
+### Subir medios sin modificar componentes
+
+Las tres carpetas ya existen dentro de `public/`. Son opcionales y no contienen fotos ni videos inventados.
+
+| Carpeta física | Nombre que se detecta automáticamente | Uso |
+| --- | --- | --- |
+| `public/videos/` | `{slug}.mp4` | Mensaje de la familia correspondiente; las rutas ya están en `guests.json` |
+| `public/posters/` | `{slug}.jpg` | Poster del video personal, salvo override explícito |
+| `public/images/` | `{slug}.jpg` | Foto de la edición personal |
+| `public/images/` | `luis-marie.jpg` | Foto compartida si no hay foto personal |
+| `public/images/` | `history.jpg` | Foto secundaria de la segunda story |
+| `public/images/` | `cover.jpg` | Última alternativa de foto compartida |
+
+Ejemplo: subir `public/videos/mariayroberto.mp4` y opcionalmente `public/posters/mariayroberto.jpg`; después del build aparecerán automáticamente en `/mariayroberto/`. No copiar los JSON de invitados. En Pages hace falta **commit/push a `main`** para ejecutar el build y publicar los archivos: no hay detección de archivos nuevos en el sitio ya exportado.
+
+La prioridad de foto es override personal → `{slug}.jpg` → `stories.photo` → `luis-marie.jpg` → `cover.jpg`. El poster usa override explícito → `posters/{slug}.jpg` → foto seleccionada → fondo editorial. La foto de historia es independiente. Nunca se buscan archivos de otra familia.
+
+Publicar MP4 H.264 vertical 1080×1920, idealmente 15–30 s, comprimido y con fast-start. El video usa `object-fit: cover`: mantener rostros y texto esencial dentro del área central. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT en `/videos/nombre.vtt` mediante `captions`/`generalCaptions`; transcripción revisada en `transcript`/`generalTranscript`.
 
 ```powershell
 npm.cmd run test:stories
@@ -99,9 +118,9 @@ $env:BETA_URL = "http://127.0.0.1:3002/boda"
 npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts --workers=1
 ```
 
-Las pruebas cubren los seis destinatarios, seis páginas, 30 s nominales, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build de fixture local: un MP4 sintético 9:16 de 7 s y poster (`tests/create-story-fixture.mjs`). Esa corrida verifica reproducción real del navegador, duración/ended, sonido, pausa, ausencia de controles grandes y fallos de video/foto. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar ambos archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
+Las pruebas cubren los seis destinatarios, seis páginas, 30 s nominales, pausa/gestos/touch real por CDP, fullscreen, compartir/copia, no-JS y 320/360/390/430/768/1440 px. `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build de fixture local: un MP4 sintético 9:16 de 7 s, poster y VTT (`tests/create-story-fixture.mjs`). Esa corrida verifica reproducción real del navegador, duración/ended, sonido, pausa, CC/transcripción y fallos de video/foto. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions`, `generalTranscript` y `photo` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los tres archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
 
-Validación de esta entrega: typecheck, lint y export estático aprobados; 13 smoke, 7 QR, 3 selección/configuración de stories y 47 escenarios de navegador (32 existentes + 15 nuevos) verificados. Los 4 escenarios adicionales de medios se ejecutaron con el MP4 sintético y se retiraron esos archivos del build final. Se corrigieron el swipe nativo dentro de la página con scroll, el foco al volver a la invitación, una carrera entre error de video y rechazo de autoplay, y un selector de prueba que confundía la dedicatoria del sobre con la de la portada. La evidencia no reemplaza QA en iOS/Android reales ni valida videos personales que aún no se han recibido.
+Validación de esta entrega: typecheck, lint y export estático aprobados; 13 smoke, 7 QR, 5 selección/configuración de stories y 48 escenarios de navegador (32 de la invitación + 16 de stories/touch) verificados. Además pasaron 5 escenarios con MP4/VTT sintéticos y una comprobación de subida por convención de foto, poster y video personal, sin editar el JSON del invitado ni mezclar subtítulos/transcripción generales. Se retiraron los seis archivos temporales y se reconstruyó el export sin medios de prueba. Se verificaron fallback `default` en 404, clipboard denegado, CC y lectura al 200 %. La evidencia no reemplaza QA en iOS/Android reales ni valida videos personales que aún no se han recibido.
 
 ## Recorrido y función narrativa
 
@@ -110,7 +129,7 @@ Validación de esta entrega: typecheck, lint y export estático aprobados; 13 sm
 | Carta cerrada | Identificar destinatario y cupos | Abrir, sin enlaces de bypass | Formulario nativo |
 | Apertura | Umbral físico de objeto a lectura | Solapa → papel → pliegues → destinatario | Inmediata con reduced motion; control para omitir animación |
 | Saludo | Dedicar la carta | Foco y lectura libre | Nombre y cupos en HTML |
-| The Love Issue | Edición personal en seis stories | Recap opcional, gestos y regreso a invitación | Lectura estática y placeholders de medios |
+| The Love Issue | Edición personal en seis stories | Recap opcional, gestos y regreso a invitación | Lectura estática y composiciones tipográficas sin medios |
 | Historia | Pasar a memoria compartida | Pausa tipográfica y tinta | Contenido estático |
 | 2008 | Comienzo real de la relación | Primera página de memoria | Capítulo tipográfico |
 | 2022 | Boda civil | Relevo espacial | Capítulo tipográfico |

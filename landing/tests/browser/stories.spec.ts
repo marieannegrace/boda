@@ -30,11 +30,18 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
     const family = issue.locator('[data-story-id="family"]');
     await expect(family).toContainText(guest.displayName);
-    await expect(family).toContainText(`Cupos: ${guest.seats ?? guest.seatsPendingLabel}`);
+    await expect(family).toContainText(guest.seats === null ? guest.seatsPendingLabel : `${guest.seats} INVITADOS`);
+    await expect(family).toContainText("VOL. 01");
+    await expect(family).toContainText("NO. 001");
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
-    await expect(issue.locator('[data-story-id="moment"]')).toContainText("Fotografía pendiente");
+    await expect(issue.locator('[data-story-id="moment"]')).toContainText("Ahora queremos escribir");
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
-    await expect(issue.locator('[data-story-id="message"]')).toContainText("Mensaje en video pendiente");
+    await expect(issue.locator('[data-story-id="message"]')).toContainText("Con cariño,");
+    await expect(issue.locator('[data-story-id="message"]')).toContainText("Luis & Marie");
+    const editorialText = await issue.innerText();
+    expect(editorialText).not.toMatch(/placeholder|video pendiente|fotografía pendiente|undefined|\bnull\b|\bNaN\b|pendiente de incorporar/i);
+    await expect(issue.getByRole("button", { name: "Subtítulos", exact: true })).toHaveCount(0);
+    await expect(issue.getByText("Leer el mensaje", { exact: true })).toHaveCount(0);
     await issue.getByRole("button", { name: "Historia siguiente" }).click();
     await expect(issue.locator('[data-story-id="closing"]')).toBeVisible();
     await issue.getByRole("link", { name: "Ver la invitación", exact: true }).click();
@@ -122,12 +129,23 @@ test("Love Issue share fallback copies the same personalized Pages URL", async (
   });
   const issue = await start(page, "giovanna");
   for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
-  await issue.getByRole("button", { name: "Compartir", exact: true }).click();
-  await expect(issue.getByRole("textbox", { name: "Enlace de tu carta" })).toHaveValue("https://marieannegrace.github.io/boda/giovanna/");
-  await expect(issue.getByRole("link", { name: "Compartir por WhatsApp" })).toHaveAttribute("href", /giovanna/);
   await issue.getByRole("button", { name: "Copiar enlace" }).click();
   await expect(issue).toContainText("Enlace copiado.");
   expect(await page.evaluate(() => document.documentElement.dataset.copied)).toBe("https://marieannegrace.github.io/boda/giovanna/");
+});
+
+test("Love Issue clipboard failure exposes a selectable personalized link", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+      writeText: async () => { throw new DOMException("Test clipboard denied", "NotAllowedError"); },
+    } });
+  });
+  const issue = await start(page, "giovanna");
+  for (let i = 0; i < 5; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
+  await issue.getByRole("button", { name: "Copiar enlace", exact: true }).click();
+  await expect(issue).toContainText("No se pudo copiar automáticamente");
+  await expect(issue.getByRole("textbox", { name: "Enlace de tu carta" })).toHaveValue("https://marieannegrace.github.io/boda/giovanna/");
 });
 
 test("Love Issue Web Share receives selected guest URL, and failed sharing offers alternatives", async ({ page }) => {
@@ -188,7 +206,7 @@ test("Love Issue 200-percent text remains readable inside the story without hori
   expect(await issue.getByRole("region", { name: /THE LOVE ISSUE, edición/ }).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await family.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
   await family.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-  await expect(family.locator("p").last()).toBeInViewport();
+  await expect(family.getByText("NO. 001", { exact: true })).toBeInViewport();
   await family.evaluate((element) => { element.scrollTop = 0; });
   await family.scrollIntoViewIfNeeded();
   await expect(family.locator("p").first()).toBeInViewport();

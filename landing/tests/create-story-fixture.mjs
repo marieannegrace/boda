@@ -41,5 +41,6 @@ try {
   await writeFile(path.join("public", "videos", "story-fixture.mp4"), Buffer.from(bytes), { flag: "wx" });
   const poster = await sharp({ create: { width: 240, height: 426, channels: 3, background: "#3d493c" } }).png().toBuffer();
   await writeFile(path.join("public", "images", "story-fixture.png"), poster, { flag: "wx" });
-  console.log("Synthetic 9:16 MP4 and poster created. Delete both files and restore stories.json before publishing.");
+  await writeFile(path.join("public", "videos", "story-fixture.vtt"), "WEBVTT\n\n00:00.000 --> 00:07.000\nSynthetic media caption\n", { flag: "wx" });
+  console.log("Synthetic 9:16 MP4, poster and VTT created. Delete all three files and restore stories.json before publishing.");
 } finally { await browser.close(); }

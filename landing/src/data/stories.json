@@ -3,6 +3,7 @@
   "subtitle": "Una edición para quienes forman parte de nuestra historia.",
   "edition": "FAMILY EDITION",
   "volume": "VOL. 01",
+  "number": "NO. 001",
   "specialEdition": "SPECIAL WEDDING EDITION",
   "personalizationLabel": "ESTA EDICIÓN ES PARA",
   "hashtag": "#LuisYMarie",
@@ -13,8 +14,8 @@
   "generalTranscript": null,
   "photo": null,
   "photoAlt": "Luis y Marie, una memoria compartida.",
-  "photoPlaceholder": "Aquí irá una fotografía de Luis y Marie.",
-  "videoPlaceholder": "El mensaje personal de Luis y Marie será incorporado en esta página de la edición.",
+  "messageHeading": "DE NUESTRA VOZ A USTEDES",
+  "messageSignoff": "Con cariño,",
   "slides": [
     { "id": "cover", "label": "La portada", "duration": 5, "lines": [] },
     { "id": "history", "label": "Nuestra historia contigo", "duration": 5, "lines": ["Hay personas que forman parte de nuestra historia mucho antes de saberlo.", "Y ustedes son una de ellas."] },

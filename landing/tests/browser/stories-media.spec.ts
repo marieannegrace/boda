@@ -78,17 +78,35 @@ test("Love Issue video fixture: failed media offers retry and does not trap the 
   await page.route("**/story-fixture.mp4", (request) => request.abort());
   const issue = await message(page);
   await expect(issue).toContainText("El mensaje no pudo cargarse");
-  await expect(issue.getByRole("button", { name: "Reintentar video" })).toBeVisible();
+  await expect(issue.getByRole("button", { name: "Reintentar mensaje" })).toBeVisible();
+  await expect(issue.locator("video")).toHaveCount(0);
+  await expect(issue.locator('[data-story-id="message"]')).toContainText("Con cariño,");
   await issue.getByRole("button", { name: "Historia siguiente" }).click();
   await expect(issue.getByRole("link", { name: "Ver la invitación", exact: true })).toBeVisible();
 });
 
-test("Love Issue video fixture: failed story photo produces an explicit editorial fallback", async ({ page }) => {
+test("Love Issue video fixture: failed story photo leaves an editorial composition, never a broken image", async ({ page }) => {
   await page.route("**/story-fixture.png", (request) => request.abort());
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
   await issue.getByRole("button", { name: "Abrir mi edición" }).click();
   for (let i = 0; i < 3; i++) await issue.getByRole("button", { name: "Historia siguiente" }).click();
-  await expect(issue.locator('[data-story-id="moment"]')).toContainText("La fotografía no pudo cargarse");
+  const moment = issue.locator('[data-story-id="moment"]');
+  await expect(moment).toContainText("Ahora queremos escribir una nueva página juntos.");
+  await expect(moment.locator("img")).toHaveCount(0);
+  await expect(moment).not.toContainText(/pendiente|placeholder|no pudo cargarse/i);
+});
+
+test("Love Issue video fixture: captions can be toggled and transcript opens only when provided", async ({ page }) => {
+  const issue = await message(page, true);
+  const cc = issue.getByRole("button", { name: "Subtítulos", exact: true });
+  await expect(cc).toHaveAttribute("aria-pressed", "false");
+  await cc.click();
+  await expect(cc).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => issue.locator("video").evaluate((element: HTMLVideoElement) => element.textTracks[0]?.mode)).toBe("showing");
+  await cc.click();
+  await expect.poll(() => issue.locator("video").evaluate((element: HTMLVideoElement) => element.textTracks[0]?.mode)).toBe("hidden");
+  await issue.getByText("Leer el mensaje", { exact: true }).click();
+  await expect(issue.locator("details")).toContainText("Synthetic media transcript");
 });

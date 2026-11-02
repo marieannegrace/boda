@@ -49,7 +49,7 @@ for (const guest of recipients) {
       if (width < 960) expect(await page.evaluate(() => document.documentElement.classList.contains("lenis"))).toBe(false);
       expect(await page.getByRole("link", { name: /Confirmar por WhatsApp/ }).getAttribute("href")).toContain(encodeURIComponent(guest.displayName));
       await expect(page.locator("#postboda")).not.toContainText("Desayuno junto a la piscina");
-      await expect(page.locator("#video")).toContainText("Mensaje en video pendiente");
+      await expect(page.locator("#video")).toContainText("Con cariño,");
       expect(media).toEqual([]);
       expect(errors).toEqual([]);
       await page.reload();
@@ -121,13 +121,13 @@ test("360/430px and short landscape keep the CTA accessible; expanded invitation
   await expect(enlarge).toBeFocused();
 });
 
-test("unknown slug offers general fallback; unsupported route is 404", async ({ page }) => {
+test("unknown slug renders the default invitation without borrowing any guest; HTTP status remains 404", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const missing = await page.goto(route("/sin-asignar/"));
   expect(missing?.status()).toBe(404);
-  await page.getByRole("link", { name: "Abrir la invitación", exact: true }).click();
   await page.getByRole("button", { name: "Abrir la carta" }).click();
   await expect(page.locator("#saludo-heading")).toHaveText("Querida familia,");
+  await expect(page.locator("[data-love-issue]")).toContainText("Edición dedicada a ustedes");
   const response = await page.goto(route("/roberto/no-existe"));
   expect(response?.status()).toBe(404);
 });

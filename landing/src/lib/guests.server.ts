@@ -49,7 +49,7 @@ function validateGuest(guest: Guest, key: string) {
   }
   for (const [value, pattern] of [
     [guest.video, /^\/videos\/[a-zA-Z0-9_-]+\.mp4$/],
-    [guest.poster, /^\/images\/[a-zA-Z0-9_-]+\.(webp|png|jpg)$/],
+    [guest.poster, /^\/(?:images|posters)\/[a-zA-Z0-9_-]+\.(webp|png|jpe?g)$/],
     [guest.captions, /^\/videos\/[a-zA-Z0-9_-]+\.vtt$/],
   ] as const) {
     if (value !== null && !pattern.test(value)) {

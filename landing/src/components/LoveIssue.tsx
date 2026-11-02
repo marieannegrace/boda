@@ -20,9 +20,23 @@ function subscribeVisibility(callback: () => void) {
   document.addEventListener("visibilitychange", callback);
   return () => document.removeEventListener("visibilitychange", callback);
 }
+function subscribeSharing() { return () => {}; }
 
-function StoryPage({ content, slide }: { content: StoriesContent; slide: StorySlide }) {
-  const [photoFailed, setPhotoFailed] = useState(false);
+function StoryPhoto({ source, alt, className }: { source: string; alt: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <figure className={className}>
+      <Image src={assetPath(source)} alt={alt} fill sizes="(min-width: 768px) 400px, 94vw"
+        loading="lazy" data-story-photo onError={() => {
+          console.error("Story image failed to load:", source);
+          setFailed(true);
+        }} />
+    </figure>
+  );
+}
+
+function StoryPage({ content, slide, active = true }: { content: StoriesContent; slide: StorySlide; active?: boolean }) {
   return (
     <>
       {slide.id === "cover" ? (
@@ -31,7 +45,9 @@ function StoryPage({ content, slide }: { content: StoriesContent; slide: StorySl
             {content.title.split(" ").map((word, i) => <span key={`${word}-${i}`}>{word}</span>)}
           </h3>
           <p className={styles.special} data-story-reveal>{content.specialEdition}</p>
+          <p className={styles.coverSubtitle} data-story-reveal>{content.subtitle}</p>
           <span className={styles.rule} data-story-reveal aria-hidden="true" />
+          <div className={styles.publication} data-story-reveal><span>{content.volume}</span><span>{content.number}</span></div>
           <p className={styles.colophon} data-story-reveal>{content.colophon}</p>
           <p className={styles.coverDedication} data-story-reveal>Para {content.recipient}</p>
         </div>
@@ -41,6 +57,8 @@ function StoryPage({ content, slide }: { content: StoriesContent; slide: StorySl
           <span className={styles.largeQuote} aria-hidden="true">“</span>
           {slide.lines.map((line) => <p key={line} data-story-reveal>{line}</p>)}
           <p className={styles.signature} data-story-reveal>{content.couple}</p>
+          {active && content.historyPhoto ? <StoryPhoto source={content.historyPhoto} alt="Una memoria de Luis y Marie."
+            className={styles.historyPhoto} /> : null}
         </div>
       ) : null}
       {slide.id === "family" ? (
@@ -50,35 +68,24 @@ function StoryPage({ content, slide }: { content: StoriesContent; slide: StorySl
           <span className={styles.rule} aria-hidden="true" data-story-reveal />
           <p className={styles.familyLabel} data-story-reveal>{content.personalizationLabel}</p>
           <h3 className={styles.familyName} data-story-reveal>{content.recipient}</h3>
-          <p className={styles.cupos} data-story-reveal>Cupos: {content.seats}</p>
-          <p className={styles.colophon} data-story-reveal>{content.colophon}</p>
+          <p className={styles.cupos} data-story-reveal>{content.seats}</p>
+          <div className={styles.publication} data-story-reveal><span>{content.volume}</span><span>{content.number}</span></div>
         </div>
       ) : null}
       {slide.id === "moment" ? (
         <div className={styles.moment}>
           <p className={styles.momentHeading} data-story-reveal>{slide.lines[0]}</p>
-          <figure className={styles.photoFrame} data-story-reveal>
-            {content.photo && !photoFailed ? (
-              <Image src={assetPath(content.photo)} alt={content.photoAlt} fill
-                sizes="(min-width: 768px) 400px, 90vw" loading="lazy" data-story-photo onError={() => setPhotoFailed(true)} />
-            ) : (
-              <div className={styles.photoPlaceholder}>
-                <span className={styles.photoInitials} aria-hidden="true">L &amp; M</span>
-                <p role={photoFailed ? "status" : undefined}>{photoFailed ? "La fotografía no pudo cargarse. Puedes continuar con la edición." : content.photoPlaceholder}</p>
-                <span>Fotografía pendiente</span>
-              </div>
-            )}
-          </figure>
+          {active && content.photo ? <StoryPhoto source={content.photo} alt={content.photoAlt} className={styles.photoFrame} /> : null}
+          <span className={styles.momentMonogram} aria-hidden="true" data-story-reveal>L &amp; M</span>
           <p className={styles.momentFootnote} data-story-reveal>{slide.lines[1]}</p>
         </div>
       ) : null}
-      {slide.id === "message" && !content.video ? (
-        <div className={styles.messagePlaceholder}>
-          <p className={styles.special} data-story-reveal>De nuestra voz a ustedes</p>
-          <span className={styles.messageInitials} aria-hidden="true" data-story-reveal>L &amp; M</span>
-          <p className={styles.messageRecipient} data-story-reveal>Un mensaje para {content.recipient}</p>
-          <p className={styles.pendingCopy} data-story-reveal>{content.videoPlaceholder}</p>
-          <p className={styles.colophon} data-story-reveal>Mensaje en video pendiente</p>
+      {slide.id === "message" ? (
+        <div className={styles.messageEditorial}>
+          <p className={styles.special} data-story-reveal>{content.messageHeading}</p>
+          <span className={styles.rule} aria-hidden="true" data-story-reveal />
+          <p className={styles.signoff} data-story-reveal>{content.messageSignoff}</p>
+          <h3 className={styles.messageSignature} data-story-reveal>{content.couple}</h3>
         </div>
       ) : null}
       {slide.id === "closing" ? (
@@ -106,6 +113,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const [inView, setInView] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [videoIntent, setVideoIntent] = useState(false);
   const [mediaState, setMediaState] = useState<"loading" | "ready" | "playing" | "error">("loading");
   const [notice, setNotice] = useState("");
@@ -121,11 +129,13 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const gesture = useRef<{ id: number; x: number; y: number; time: number } | null>(null);
   const sequence = useRef<gsap.core.Timeline | null>(null);
   const reduced = useSyncExternalStore(subscribeMotion, () => matchMedia(reducedQuery).matches, () => false);
+  const nativeSharing = useSyncExternalStore(subscribeSharing, () => typeof navigator.share === "function", () => true);
   const visible = useSyncExternalStore(subscribeVisibility, () => !document.hidden, () => true);
   const automatic = automaticChoice && !reduced;
   const suspended = paused || holding || (!inView && !isFullscreen) || !visible || keyboardFocus;
   const slide = content.slides[index];
   const videoActive = started && slide.id === "message" && Boolean(content.video);
+  const showVideo = videoActive && mediaState !== "error";
   const last = index === content.slides.length - 1;
   const videoFailed = mediaState === "error";
   const wantsVideo = !paused && (automatic || videoIntent);
@@ -134,7 +144,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     const container = root.current;
     if (!container) return;
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.3), { threshold: [0, 0.3] });
-    observer.observe(container);
+    observer.observe(screen.current ?? container);
     return () => observer.disconnect();
   }, []);
 
@@ -151,7 +161,23 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       video?.removeAttribute("src");
       video?.load();
     };
-  }, [videoActive]);
+  }, [showVideo]);
+
+  useEffect(() => {
+    const video = player.current;
+    if (!video || !showVideo) return;
+    const update = () => {
+      for (const track of Array.from(video.textTracks)) track.mode = captionsEnabled ? "showing" : "hidden";
+    };
+    update();
+    video.textTracks.addEventListener("addtrack", update);
+    const track = video.querySelector("track");
+    track?.addEventListener("load", update);
+    return () => {
+      video.textTracks.removeEventListener("addtrack", update);
+      track?.removeEventListener("load", update);
+    };
+  }, [showVideo, captionsEnabled]);
 
   useGSAP(() => {
     if (!started || reduced) return;
@@ -159,11 +185,15 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     if (!active) return;
     const timeline = gsap.timeline({ paused: suspended });
     sequence.current = timeline;
-    timeline.from(active, { opacity: 0, x: 12, duration: 0.7, ease: "power3.out" });
+    if (slide.id === "cover") {
+      timeline.from(active.querySelector("[data-story-texture]"), { opacity: 0, duration: 0.7 }, 0)
+        .from(active.querySelector("[data-story-ornament]"), { opacity: 0, scale: 0.98, duration: 0.7, ease: "power3.out" }, 0.15);
+    }
+    timeline.from(active, { opacity: 0, x: 12, duration: 0.7, ease: "power3.out" }, 0);
     const reveals = active.querySelectorAll("[data-story-reveal]");
     if (reveals.length) timeline.from(reveals, {
       opacity: 0, y: 16, duration: 0.7, stagger: 0.16, ease: "power3.out",
-    }, 0.12);
+    }, slide.id === "cover" ? 0.4 : 0.12);
     const title = active.querySelector("[data-story-title]");
     if (title) timeline.from(title, { letterSpacing: "0.08em", duration: 1.05, ease: "power3.out" }, 0.22);
     const photo = active.querySelector("[data-story-photo]");
@@ -199,7 +229,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   }, [videoActive, suspended, automatic, videoIntent, videoFailed]);
 
   useEffect(() => {
-    if (!started || suspended) return;
+    if (!started || suspended || (!automatic && (!showVideo || mediaState !== "playing"))) return;
     const bar = bars.current[index];
     let frame = 0;
     let previous = performance.now();
@@ -207,7 +237,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     const tick = (now: number) => {
       let progress = Math.min(1, elapsed.current / slide.duration);
       const video = player.current;
-      if (videoActive && mediaState !== "error") {
+      if (showVideo) {
         progress = video && Number.isFinite(video.duration) && video.duration > 0 ? video.currentTime / video.duration : 0;
       } else if (automatic) {
         elapsed.current += (now - previous) / 1000;
@@ -226,7 +256,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [index, started, suspended, automatic, videoActive, mediaState, slide.duration, last]);
+  }, [index, started, suspended, automatic, showVideo, mediaState, slide.duration, last]);
 
   function go(next: number) {
     const target = Math.max(0, Math.min(content.slides.length - 1, next));
@@ -235,6 +265,9 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     setIndex(target);
     setVideoIntent(false);
     setMediaState("loading");
+    for (const [i, bar] of bars.current.entries()) {
+      if (bar) bar.style.transform = `scaleX(${i < target ? 1 : 0})`;
+    }
     setNotice("");
     setShareFallback(false);
     if (panels.current?.contains(document.activeElement)) screen.current?.focus({ preventScroll: true });
@@ -249,6 +282,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   }
 
   function mediaFailed() {
+    console.error("Story video failed to load:", content.video?.source);
     setMediaState("error");
     elapsed.current = 0;
     setNotice("El mensaje no pudo cargarse. Puedes reintentar o continuar a la invitación.");
@@ -282,11 +316,13 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   }
 
   async function copy() {
+    setLocalShareUrl(content.shareUrl ?? `${location.origin}${location.pathname}`);
     try {
       if (!navigator.clipboard) throw new Error("Clipboard API unavailable");
       await navigator.clipboard.writeText(content.shareUrl ?? `${location.origin}${location.pathname}`);
       setNotice("Enlace copiado.");
     } catch {
+      setShareFallback(true);
       setNotice("No se pudo copiar automáticamente. Selecciona y copia el enlace que aparece debajo.");
     }
   }
@@ -375,11 +411,13 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
               {content.slides.map((item, i) => (
                 <article key={item.id} data-story-id={item.id} hidden={index !== i} inert={index !== i}
                   className={styles.page} aria-label={item.label}>
-                  <StoryPage content={content} slide={item} />
-                  {item.id === "message" && videoActive && content.video ? (
+                  <span className={styles.paperTexture} data-story-texture aria-hidden="true" />
+                  <span className={styles.cornerFrame} data-story-ornament aria-hidden="true"><i /><i /><i /><i /></span>
+                  {item.id !== "message" || !showVideo ? <StoryPage content={content} slide={item} active={started && index === i} /> : null}
+                  {item.id === "message" && showVideo && content.video ? (
                     <div className={styles.videoStory}>
                       <video ref={player} src={assetPath(content.video.source)} muted={muted} playsInline
-                        preload="none" poster={content.video.poster ? assetPath(content.video.poster) : undefined}
+                        preload="none" loop={false} poster={content.video.poster ? assetPath(content.video.poster) : undefined}
                         aria-label={`Mensaje ${content.video.personalized ? "personalizado" : "general"} de ${content.couple}`}
                         onLoadedMetadata={() => setMediaState("ready")}
                         onPlaying={() => { setMediaState("playing"); setNotice(""); }}
@@ -400,17 +438,18 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                             {wantsVideo ? "Pausa" : "Play"}
                           </button>
                           <button onClick={() => setMuted((value) => !value)} aria-pressed={!muted}>
-                            {muted ? "Activar sonido" : "Silenciar"}
+                            <span aria-hidden="true">{muted ? "🔇" : "🔊"}</span><span className={styles.srOnly}>{muted ? "Activar sonido" : "Silenciar"}</span>
                           </button>
+                          {content.video.captions ? <button aria-label="Subtítulos" aria-pressed={captionsEnabled}
+                            onClick={() => setCaptionsEnabled((value) => !value)}>CC</button> : null}
                         </div>
                         {mediaState === "loading" ? <p role="status">Cargando el mensaje…</p> : null}
-                        {mediaState === "error" ? (
-                          <button onClick={() => { setMediaState("loading"); setPaused(false); setVideoIntent(true); player.current?.load(); }}>Reintentar video</button>
-                        ) : null}
-                        {!content.video.captions ? <p className={styles.captionPending}>Subtítulos pendientes</p> : null}
                       </div>
                     </div>
                   ) : null}
+                  {item.id === "message" && videoFailed ? <button className={styles.retryButton} onClick={() => {
+                    setMediaState("loading"); setPaused(false); setVideoIntent(true); setNotice("");
+                  }}>Reintentar mensaje</button> : null}
                 </article>
               ))}
             </div>
@@ -422,7 +461,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                   event.preventDefault();
                   void openInvitation();
                 }}>Ver la invitación</a>
-                <button onClick={share}>Compartir</button>
+                <button onClick={nativeSharing ? share : copy}>{nativeSharing ? "Compartir" : "Copiar enlace"}</button>
               </div>
             ) : null}
             {!started ? <button className={styles.startButton} onClick={begin}>Abrir mi edición</button> : (

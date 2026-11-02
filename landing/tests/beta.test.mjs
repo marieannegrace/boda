@@ -37,7 +37,7 @@ test("Roberto receives all 15 scenes in server HTML without a mounted video sour
   ]);
   assert.match(markup, /Queridos Roberto y familia/);
   assert.match(markup, /El acceso de esta invitación está pendiente de asignación/);
-  assert.match(markup, /Mensaje en video pendiente/);
+  assert.match(markup, /Con cariño,/);
   assert.match(markup, /data-entry-state="locked"/);
   assert.match(markup, /hidden="" inert="" data-letter-content/);
   assert.doesNotMatch(markup, /Desayuno junto a la piscina/);
@@ -60,7 +60,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
     assert.ok(markup.replaceAll("<!-- -->", "").includes(`Cupos: ${seats}`));
     assert.equal([...markup.matchAll(/data-scene="/g)].length, 15);
     assert.match(markup, /data-entry-state="locked"/);
-    assert.match(markup, /Mensaje en video pendiente/);
+    assert.match(markup, /Con cariño,/);
     const rsvp = markup.match(/href="(https:\/\/wa\.me\/[^"]+)"/)?.[1];
     assert.ok(rsvp);
     assert.ok(new URL(rsvp.replaceAll("&amp;", "&")).searchParams.get("text").includes(guest.displayName));
@@ -104,7 +104,10 @@ test("general invitation contains no guest media and unknown slugs return the ge
   }
   const response = await fetch(`${base}/sin-asignar/`);
   assert.equal(response.status, 404);
-  assert.match(await response.text(), /Puedes volver a la invitación general/);
+  const html = await response.text();
+  assert.match(html, /Querida familia/);
+  assert.match(html, /Con cariño,/);
+  assert.doesNotMatch(html, /\/videos\/roberto\.mp4/);
 });
 
 test("unsupported nested routes are 404, and the facsimile derivative is served", async () => {

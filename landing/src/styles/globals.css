@@ -37,6 +37,8 @@ img, video { max-width: 100%; }
 .systemPage { min-height: 100svh; padding: 5rem 1.5rem; display: grid; align-content: center; justify-items: start; gap: 1.5rem; }
 .systemPage h1 { max-width: 20ch; }
 .systemPage button { padding: 0.75rem 1.5rem; border: 1px solid currentColor; background: transparent; }
+.fallbackNote { padding: 1rem; text-align: center; font-size: 0.875rem; }
+body:has([data-entry-state="locked"]) .fallbackNote { display: none; }
 @media (min-width: 960px) {
   h1 { font-size: 4.5rem; }
   h2 { font-size: 4rem; }

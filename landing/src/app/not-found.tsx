@@ -1,11 +1,19 @@
 import Link from "next/link";
+import Experience from "@/components/Experience";
+import { getGuest } from "@/lib/guests.server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const guest = getGuest();
+  if (!guest) throw new Error("Missing default guest configuration");
+  // Resolve async media before rendering Next's static 404 boundary.
+  const experience = await Experience({ guest });
   return (
-    <main className="systemPage">
-      <h1>Esta página no está en la carta.</h1>
-      <p>Puedes volver a la invitación general.</p>
-      <Link href="/">Abrir la invitación</Link>
-    </main>
+    <>
+      {experience}
+      <aside className="fallbackNote">
+        <p>Puedes volver a la invitación general.</p>
+        <Link href="/">Abrir la invitación</Link>
+      </aside>
+    </>
   );
 }

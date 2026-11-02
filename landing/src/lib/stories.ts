@@ -12,13 +12,14 @@ export interface StoriesContent {
   subtitle: string;
   edition: string;
   volume: string;
+  number: string;
   specialEdition: string;
   personalizationLabel: string;
   hashtag: string;
   shareText: string;
   photoAlt: string;
-  photoPlaceholder: string;
-  videoPlaceholder: string;
+  messageHeading: string;
+  messageSignoff: string;
   recipient: string;
   seats: string;
   couple: string;
@@ -27,6 +28,7 @@ export interface StoriesContent {
   colophon: string;
   shareUrl: string | null;
   photo: string | null;
+  historyPhoto: string | null;
   video: {
     source: string;
     poster: string | null;
