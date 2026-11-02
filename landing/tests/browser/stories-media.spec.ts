@@ -19,27 +19,27 @@ async function message(page: import("@playwright/test").Page, reduced = false) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición" }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido" }).click();
   await goToStory(issue, 4);
   await expect(issue).toHaveAttribute("data-story-index", "4");
   return issue;
 }
 
-test("Love Issue video fixture: lazy muted vertical playback uses real duration and advances on ended", async ({ page }) => {
+test("Love Issue video fixture: progressive audible playback uses real duration and advances on ended", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", (request) => { if (/\.mp4/.test(request.url())) requests.push(request.url()); });
   await page.goto(route);
   await expect(page.locator("video")).toHaveCount(0);
-  expect(requests).toEqual([]);
+  expect(requests.length).toBeLessThanOrEqual(1);
   const issue = await message(page);
   const video = issue.locator("video");
   await expect.poll(async () => (await videoState(video)).currentTime).toBeGreaterThan(0.1);
   expect((await videoState(video)).ratio).toBeCloseTo(9 / 16, 1);
-  expect((await videoState(video)).muted).toBe(true);
+  expect((await videoState(video)).muted).toBe(false);
   expect((await videoState(video)).controls).toBe(false);
   await expect(video).toHaveAttribute("poster", /\/boda\/images\/story-fixture.png/);
-  await issue.getByRole("button", { name: "Escuchar video" }).click();
-  expect((await videoState(video)).muted).toBe(false);
+  await issue.getByRole("button", { name: "Silenciar video" }).click();
+  expect((await videoState(video)).muted).toBe(true);
   await page.waitForTimeout(4800);
   await expect(issue).toHaveAttribute("data-story-index", "4");
   await expect(issue).toHaveAttribute("data-story-index", "5", { timeout: 5000 });
@@ -47,11 +47,9 @@ test("Love Issue video fixture: lazy muted vertical playback uses real duration 
   expect(requests.every((url) => url.endsWith("/boda/videos/story-fixture.mp4"))).toBe(true);
 });
 
-test("Love Issue video fixture: reduced motion requires play, pause works, and progress survives a hold", async ({ page }) => {
+test("Love Issue video fixture: reduced visual motion preserves audible playback, pause and hold", async ({ page }) => {
   const issue = await message(page, true);
   const video = issue.locator("video");
-  expect((await videoState(video)).paused).toBe(true);
-  await issue.getByRole("button", { name: "Reproducir video", exact: true }).first().click();
   await expect.poll(async () => (await videoState(video)).currentTime).toBeGreaterThan(0.1);
   await issue.getByRole("button", { name: "Pausar video", exact: true }).click();
   const pausedAt = (await videoState(video)).currentTime;
@@ -91,7 +89,8 @@ test("Love Issue video fixture: failed story photo leaves an editorial compositi
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición" }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido" }).click();
+  await issue.getByRole("button", { name: "Entrar mientras carga", exact: true }).click();
   await goToStory(issue, 3);
   const moment = issue.locator('[data-story-id="moment"]');
   await expect(moment).toContainText("Ahora queremos escribir una nueva página juntos.");
@@ -120,9 +119,8 @@ test("Love Issue music starts under gesture, remains continuous, ducks without p
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
   const audio = issue.locator("audio");
-  await expect(audio).not.toHaveAttribute("src");
-  expect(audioRequests).toEqual([]);
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  expect(audioRequests.length).toBeLessThanOrEqual(1);
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   const time = () => audio.evaluate((el: HTMLAudioElement) => el.currentTime);
   const paused = () => audio.evaluate((el: HTMLAudioElement) => el.paused);
   await expect.poll(time).toBeGreaterThan(0.1);
@@ -138,10 +136,9 @@ test("Love Issue music starts under gesture, remains continuous, ducks without p
   await issue.getByRole("button", { name: "Activar música", exact: true }).click();
   await expect.poll(time).toBeGreaterThan(mutedAt);
   await goToStory(issue, 4);
-  await issue.getByRole("button", { name: "Reproducir video", exact: true }).first().click();
-  await expect.poll(() => videoState(issue.locator("video"))).toMatchObject({ paused: false, muted: true });
+  await expect.poll(() => videoState(issue.locator("video"))).toMatchObject({ paused: false, muted: false });
   await expect.poll(paused).toBe(false);
-  await issue.getByRole("button", { name: "Escuchar video", exact: true }).click();
+  await issue.getByRole("button", { name: "Silenciar video", exact: true }).click();
   await expect(issue).toHaveAttribute("data-music-effective-volume", "0.0032");
   await expect.poll(paused).toBe(false);
   const duckedAt = await time();
@@ -161,7 +158,7 @@ test("Love Issue music load failure removes the broken control and preserves the
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   await expect(issue.locator("audio")).toHaveCount(0);
   await expect(issue).toContainText("No se pudo cargar la música");
   await goToStory(issue, 5);
@@ -183,7 +180,7 @@ test("Love Issue blocked audio keeps an explicit retry and does not pretend musi
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   await expect(issue).toContainText("Pulsa Activar música");
   await expect(issue.getByRole("button", { name: "Activar música", exact: true })).toHaveAttribute("aria-pressed", "false");
   await issue.getByRole("button", { name: "Activar música", exact: true }).click();

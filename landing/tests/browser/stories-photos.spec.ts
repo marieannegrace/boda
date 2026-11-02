@@ -16,6 +16,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
   test(`real photos: ${guest.slug} keeps every original photograph complete in its own History`, async ({ page }, testInfo) => {
     test.setTimeout(45000);
     await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => sessionStorage.clear());
     const expected = inventory.filter((item) => item.edition === guest.slug).map((item) => item.file);
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
@@ -26,7 +27,7 @@ for (const guest of Object.values(guests).filter((item) => item.slug !== "defaul
       page.on("request", listener);
       await page.goto(`${basePath}/${guest.slug}/lectura/`);
       const issue = page.locator("[data-love-issue]");
-      await issue.locator('[class*="startButton"]').click();
+      await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
       await expect(issue.locator("audio")).toHaveCount(1);
       await goToStory(issue, 1);
       const count = Number(await issue.getAttribute("data-history-count"));
@@ -81,7 +82,7 @@ test("History progress and backward navigation include photo pages, and a hold p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${basePath}/giovanna/lectura/`);
   const issue = page.locator("[data-love-issue]");
-  await issue.locator('[class*="startButton"]').click();
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   await goToStory(issue, 1);
   await issue.getByRole("button", { name: "Historia siguiente", exact: true }).click();
   await expect(issue).toHaveAttribute("data-history-index", "1");

@@ -1,5 +1,10 @@
 # THE LOVE ISSUE: auditoria audiovisual y de usabilidad
 
+Registro de la iteracion audiovisual publicada en `ddc1665`. La bienvenida,
+los derivados web y el autoplay audible se actualizan en
+[PERFORMANCE-AUDIT.md](PERFORMANCE-AUDIT.md); este documento conserva la
+evidencia y limitaciones de la auditoria anterior.
+
 ## Alcance y metodo
 
 V1 existente, seis segmentos y quince escenas, sin nuevas dependencias.

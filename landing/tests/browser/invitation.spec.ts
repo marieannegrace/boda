@@ -52,7 +52,8 @@ for (const guest of recipients) {
       await expect(page.locator("[data-history-content]")).toBeHidden();
       await expect(page.locator("#postboda")).not.toContainText("Desayuno junto a la piscina");
       await expect(page.locator("#video")).toContainText("DE NUESTRA VOZ A USTEDES");
-      expect(media).toEqual([]);
+      // Only a bounded first-video range may be prepared once the edition enters view.
+      expect(media.length).toBeLessThanOrEqual(1);
       expect(errors).toEqual([]);
       await page.reload();
       await expect(gate).toHaveAttribute("data-entry-state", "locked");
@@ -116,7 +117,7 @@ test("360/430px and short landscape keep the CTA accessible; expanded invitation
     await expect(page.locator("[data-entry-state]")).toHaveAttribute("data-entry-state", "opened");
   }
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   await goToStory(issue, 2);
   const enlarge = page.getByRole("button", { name: "Ampliar invitación" });
   await enlarge.click();

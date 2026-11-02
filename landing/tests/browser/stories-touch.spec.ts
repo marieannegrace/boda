@@ -7,7 +7,7 @@ test("Love Issue real touch swipe and long press work without blocking vertical 
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(`${test.info().project.use.baseURL}/roberto/lectura/`);
     const issue = page.locator("[data-love-issue]");
-    await issue.getByRole("button", { name: "Abrir mi edición" }).tap();
+    await issue.getByRole("button", { name: "Entrar con sonido" }).tap();
     const surface = issue.locator('[class*="surface"]');
     await surface.scrollIntoViewIfNeeded();
     const bounds = await surface.boundingBox();

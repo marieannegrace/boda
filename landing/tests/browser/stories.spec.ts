@@ -10,7 +10,7 @@ async function start(page: import("@playwright/test").Page, slug = "mariayrobert
   await page.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
   await page.goto(route(slug));
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición" }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido" }).click();
   await expect(issue).toHaveAttribute("data-started", "true");
   return issue;
 }
@@ -173,10 +173,13 @@ test("Love Issue Web Share receives selected guest URL, and failed sharing offer
 });
 
 test("Love Issue is readable without JavaScript and fits 320px through desktop", async ({ browser, page }) => {
+  await page.addInitScript(() => sessionStorage.clear());
   for (const width of [320, 360, 390, 430, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(route("florisyabsalon"));
     await page.locator("[data-love-issue]").scrollIntoViewIfNeeded();
+    await page.locator("[data-love-issue]").getByRole("button", { name: "Continuar sin música", exact: true }).click();
+    await expect(page.locator("[data-love-issue]")).toHaveAttribute("data-started", "true");
     const size = await page.locator('[data-love-issue] [class*="phone"]').boundingBox();
     if (!size) throw new Error("Story screen missing");
     expect(size.width / size.height).toBeCloseTo(9 / 16, 2);
@@ -189,6 +192,7 @@ test("Love Issue is readable without JavaScript and fits 320px through desktop",
     await expect(staticPage.locator("noscript > div")).toContainText("María y Roberto");
     await expect(staticPage.locator("noscript > div")).toContainText("Gracias por acompañarnos en este camino.");
     await expect(staticPage.locator("noscript").getByRole("link", { name: "Ver la invitación" })).toBeVisible();
+    await expect(staticPage.locator("[data-image-loading]").first()).toBeHidden();
   } finally { await context.close(); }
 });
 

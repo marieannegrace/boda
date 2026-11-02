@@ -134,7 +134,7 @@ Sin retratos globales, se mantiene la prioridad anterior de foto: override perso
 
 ### Encuadres, focal points y derivados web
 
-`npm run photos:prepare` (también `predev`/`prebuild`) prepara un catálogo privado en `.cache/story-photos.json` y derivados WebP responsivos de hasta 480/960/1440 px en `public/images/stories/`, **sin ampliar, sobrescribir, renombrar o recortar los originales**. Ambas salidas son regenerables y están ignoradas por Git. En el navegador se usa `picture/srcset`, dimensiones reservadas y carga lazy del medio activo; solo se prepara la primera imagen de la página siguiente de History. El cliente recibe exclusivamente fotos de su edición y las globales necesarias.
+`npm run photos:prepare` (también `predev`/`prebuild`) prepara un catálogo privado en `.cache/story-photos.json` y derivados WebP responsivos en `public/images/stories/`, **sin ampliar, sobrescribir, renombrar o recortar los originales**. Ambas salidas son regenerables y están ignoradas por Git. El inventario y los parámetros están en [MEDIA-OPTIMIZATION.md](MEDIA-OPTIMIZATION.md). En el navegador se usa `picture/srcset`, `sizes` según el marco real y dimensiones reservadas; solo se montan imágenes activas y se preparan las dos fotos de la página siguiente cuando corresponde. El cliente recibe exclusivamente fotos de su edición y las globales necesarias.
 
 Los archivos recibidos miden entre 347 y 1625 px de ancho, no 4000×3000. No se consideran sustitutos de esos masters. Si se entregan masters mayores, las mismas reglas generan sus derivados sin alterar el original.
 
@@ -157,18 +157,50 @@ Tratamientos por foto en `stories.json`, sin panel administrativo:
 
 Sin override, horizontales usan `memory` y verticales/cuadradas `editorial`, siempre con `object-fit: contain`, sin zoom y focal point 50/50. `memory` deja papel alrededor de la foto; `editorial` conserva la imagen completa con aire tipográfico. `hero` permite `cover` y un zoom mínimo **solo si se aprueba que el recorte es seguro**. Ninguna de las 45 fotos usa hero por defecto. Los focal points son porcentajes 0–100; modificar la configuración y reconstruir, no los originales.
 
+### Tinta botánica ambiental
+
+THE LOVE ISSUE añade dos dibujos SVG ligeros de olivo y flores silvestres,
+sin imágenes externas ni cambios en los medios originales. La capa es
+independiente del contenido, no interactiva y oculta al lector de pantalla.
+El centro queda libre; las composiciones asimétricas cambian entre bienvenida,
+portada, History, edición familiar y cierre. Las páginas fotográficas alternan
+el margen y reducen la tinta al 3.5%; los videos no muestran ornamentación.
+El papel y la tipografía siguen siendo protagonistas.
+
+Opacidades: bienvenida 12%, portada 15%, History 7%, edición familiar 10%,
+Moment 4.5%, mensaje sin video 3.5% y cierre 14%. La entrada usa un solo fade
+de 1.6 s; únicamente en desktop con puntero fino hay un desplazamiento de
+4–6 px. No hay loops, filtros, animación de trazados ni parallax móvil.
+La línea de tiempo existente pausa también los motivos y los revierte al
+activar `prefers-reduced-motion`; sin movimiento, quedan impresos estáticos.
+
+### Bienvenida y preparación progresiva
+
+La entrada conserva la identidad editorial y presenta **Entrar con sonido** y **Continuar sin música**. El progreso cuenta recursos realmente preparados, no segundos ni porcentajes de bytes inventados: fuentes/portada, primera foto decodificada, música disponible, poster y primeros 64 KiB del primer video mediante HTTP Range. No se monta un segundo reproductor para precargar.
+
+Al elegir entrar se espera únicamente la portada y primera foto; no se bloquea por descargar videos completos o toda la canción. **Entrar mientras carga** permite continuar si falla o tarda ese núcleo. Las fotos activas indican carga y el reloj automático no avanza mientras aún esperan su imagen. El próximo par de fotos se prepara en segundo plano. La introducción del segundo mensaje prepara únicamente su poster y comienzo; no descarga dos videos completos a la vez. Si el servidor no acepta Range, se cancela la respuesta en vez de descargar todo el MP4.
+
+El servidor selecciona los derivados de `public/media/catalog.json` **después** de resolver la edición con el clasificador existente. El catálogo no se envía entero al cliente. Sin derivado para un medio nuevo se conserva el original hasta generar su copia web. Los derivados audiovisuales y el catálogo deben conservarse en Git; el build de Pages no necesita FFmpeg.
+
+Para regenerar audiovisuales localmente: `npm run media:prepare`, con FFmpeg/FFprobe instalados o rutas `FFMPEG_PATH` y `FFPROBE_PATH`. No es una dependencia del navegador ni de producción; no sube medios a servicios externos. La preparación de fotos sigue usando el Sharp ya instalado.
+
 ### Música ambiental
 
-La pista actual es `public/audio/videoplayback.weba`: contenedor WebM, audio Opus. Hay un solo elemento audio y un solo controlador Web Audio (`AudioContext` + `GainNode`), creado al interactuar. **Abrir mi edición** solicita la reproducción; si el navegador la bloquea queda el botón **Activar música**. El volumen inicial es 0.16; el invitado puede ajustarlo entre 0 y 100% y silenciarlo. La preferencia se conserva durante el recorrido, no se escribe un perfil persistente del invitado.
+El original es `public/audio/videoplayback.weba` (WebM/Opus); se utiliza preferentemente su copia AAC/M4A compatible, sin alterar el original. Hay un solo elemento audio y un solo controlador Web Audio (`AudioContext` + `GainNode`), creado en la interacción de entrada. **Entrar con sonido** inicia en `currentTime = 10` y aplica fade-in de 1.6 s desde ganancia cero; no espera diez segundos. La música no se activa antes de que el invitado elija sonido. Si la política bloquea el intento, se ofrece **Activar música**, sin insistir ni mostrar errores técnicos.
+
+El volumen inicial es 0.16; el invitado puede ajustarlo entre 0 y 100% y silenciarlo. Solo la elección de música y volumen se guardan en `sessionStorage` (sin nombres ni datos de invitados), para no repetir la bienvenida durante la sesión. Si el almacenamiento está bloqueado, el recorrido funciona y la preferencia se mantiene en memoria. Continuar sin música no silencia los mensajes personales. Una nueva navegación completa puede requerir un nuevo gesto por política del navegador; no se garantiza autorización global de audio.
 
 Durante cualquier video que esté reproduciéndose, la ganancia efectiva es `volumenElegido × 0.02`. Ejemplo: 40% pasa a 0.8% del volumen de salida total, no a 2% fijo. La pista sigue reproduciéndose y su reloj avanza. Al pausar/terminar/cerrar el video se recupera el volumen elegido; las rampas duran 350 ms. El silencio elegido por el usuario no se revierte automáticamente. La música solo se pausa al silenciar, pausar el recorrido, mantener presionado, ocultar pestaña o salir de pantalla. No reinicia al cambiar de slide o video. La ruta se libera al desmontar.
 
-WEBA/Opus se comprueba mediante `canPlayType` y reproducción real en Chromium/Edge; esto no acredita Safari/iOS ni dispositivos físicos. El control de ganancia usa Web Audio y no depende de que iOS permita escribir `HTMLMediaElement.volume`. Para Safari/navegadores antiguos sin ese códec, añadir una **copia derivada MP3** en `public/audio/the-love-issue.mp3`, conservando el WEBA original. Se selecciona como alternativa cuando no hay soporte o falla la carga del WEBA. Todavía no se ha recibido esa alternativa: si no existe, el fallo se explica y la edición continúa sin música. Referencias: [formatos multimedia MDN](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers), [limitaciones de volume](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volume).
+AAC/M4A y WEBA/Opus se comprueban mediante `canPlayType`, con fallback al original si falla la copia; también se conserva el soporte del MP3 opcional existente. La reproducción real se verifica en Chromium/Edge, no en Safari/iOS ni dispositivos físicos. Web Audio no depende de que iOS permita escribir `HTMLMediaElement.volume`. Referencias: [formatos multimedia MDN](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Containers), [limitaciones de volume](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volume).
 
-Preferir derivados MP4 H.264/AAC con fast-start, sin sobrescribir los originales. El video usa `object-fit: contain`: conserva rostros y textos incluso si la proporción no es 9:16. El segundo MP4 no se monta ni descarga hasta reproducir su presentación. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT del mismo nombre base se detectan junto al video; siguen funcionando los campos `captions`/`generalCaptions` y `transcript`/`generalTranscript`. No se recibieron subtítulos ni transcripciones reales: no se inventan.
+Los cinco mensajes utilizan derivados MP4 H.264/AAC con fast-start y poster propio. El video usa `object-fit: contain`: conserva rostros y textos incluso si la proporción no es 9:16. Al llegar a su escena se intenta reproducción **con voz**, inline, incluso cuando se simplifica la animación por movimiento reducido. No se usa autoplay silenciado como sustituto. Si se bloquea, aparece **Reproducir con sonido**, grande y explícito, que llama a `play()` dentro del gesto. El silencio elegido para un video sigue siendo reversible.
+
+El segundo mensaje mantiene una presentación neutra de 2.2 s, pausable, sin revelar el cargo; después intenta reproducirse automáticamente. También puede iniciarse inmediatamente con su botón. Solo el video actual está montado, y se libera al salir. Para medios no convencionales se admiten rutas configuradas en `/images/` o `/posters/` (JPG/JPEG/PNG/WebP). Subtítulos WebVTT del mismo nombre base se detectan junto al video; siguen funcionando los campos `captions`/`generalCaptions` y `transcript`/`generalTranscript`. No se recibieron subtítulos ni transcripciones reales: no se inventan.
 
 ```powershell
 npm.cmd run test:stories
+npm.cmd run test:media
 $env:BETA_URL = "http://127.0.0.1:3002/boda"
 npm.cmd run test:browser -- stories.spec.ts stories-touch.spec.ts stories-photos.spec.ts --workers=1
 ```
@@ -179,7 +211,7 @@ Las pruebas cubren los seis destinatarios/segmentos, pausa/gestos/touch real por
 
 `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build local sobre la edición pública: MP4 sintético 9:16 de 7 s, poster, VTT y MP3 silencioso (`tests/create-story-fixture.mjs`). Verifica duración/ended, sonido, pausa, CC/transcripción, fallos de video/foto, música continua con atenuación, restauración y bloqueo de autoplay. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions`, `generalTranscript` y `music` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los cuatro archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
 
-La evidencia de navegador comprueba reproducción de los cinco MP4 reales y del WEBA recibido, pero no reemplaza QA ni escucha en iOS/Android físicos. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen.
+La evidencia de navegador comprueba reproducción de los cinco MP4 optimizados, la copia AAC y el fallback del WEBA, pero no reemplaza QA ni escucha en iOS/Android físicos. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen. [PERFORMANCE-AUDIT.md](PERFORMANCE-AUDIT.md) documenta condiciones de red/CPU, tiempos, memoria y límites. `npm run media:measure` permite repetir la medición local; admite `BETA_URL`, `MEASUREMENT_SLUG`, `MEASUREMENT_PROFILES` y `MEASUREMENT_OUTPUT`.
 
 ## Recorrido y función narrativa
 

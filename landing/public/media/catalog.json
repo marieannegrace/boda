@@ -1,0 +1,67 @@
+{
+  "videos": [
+    {
+      "original": "/videos/GIOVANNA 2.mp4",
+      "originalSha256": "5372353907a92ef3b119a5d200829984879777896b2d44c65de658dab4eb7c2f",
+      "source": "/media/d743e97ab1a82b5749817256.mp4",
+      "poster": "/media/77dbb6593a7ea322719d2c3e.webp",
+      "originalBytes": 13144344,
+      "bytes": 2603109,
+      "duration": 32.704,
+      "width": 540,
+      "height": 960
+    },
+    {
+      "original": "/videos/GIOVANNA.mp4",
+      "originalSha256": "14da2b245c9ebd819ed5bd89800b750db5c828f23bbb78acc0db988d69432432",
+      "source": "/media/135f4e2cfea88414e1b246f3.mp4",
+      "poster": "/media/eee44857d9733eb505bf80c0.webp",
+      "originalBytes": 6973910,
+      "bytes": 1451424,
+      "duration": 18.538667,
+      "width": 540,
+      "height": 960
+    },
+    {
+      "original": "/videos/ROBERTO 2.mp4",
+      "originalSha256": "06b584585d71c9f382d434d85bd6c0209409ca252be5d0cedaa0094267b7d810",
+      "source": "/media/76a9f7f2c4f17ca71e63e86c.mp4",
+      "poster": "/media/bad1d2e829aaf990441b5543.webp",
+      "originalBytes": 20837296,
+      "bytes": 3980329,
+      "duration": 50.730667,
+      "width": 540,
+      "height": 960
+    },
+    {
+      "original": "/videos/ROBERTO Y MARIA.mp4",
+      "originalSha256": "59ec460eb57eeb515a1b3b441a3a5edd708486ba048ba58b027f22d304bac3b1",
+      "source": "/media/5d4106fb15235f2f47e02fc2.mp4",
+      "poster": "/media/857af8c3fae46740dc356d04.webp",
+      "originalBytes": 12721165,
+      "bytes": 2527603,
+      "duration": 32.213333,
+      "width": 540,
+      "height": 960
+    },
+    {
+      "original": "/videos/ROBERTO.mp4",
+      "originalSha256": "c8b4e6c55ba34afa82840ea248dc2bc7da7ee47e647d912e33ba0bd237c3a86e",
+      "source": "/media/8b9240e49bb6d081012dad1f.mp4",
+      "poster": "/media/d8640a29db822dd07241f59c.webp",
+      "originalBytes": 13811914,
+      "bytes": 2712631,
+      "duration": 35.754667,
+      "width": 540,
+      "height": 960
+    }
+  ],
+  "music": {
+    "original": "/audio/videoplayback.weba",
+    "originalSha256": "80be13f6b0209c5c38a5f42cee1492ea0e79bcf774046f20759a2f5873000487",
+    "source": "/media/5e6fe023df9a3b3f7ffa9808.m4a",
+    "originalBytes": 5376355,
+    "bytes": 3848204,
+    "duration": 320.73725
+  }
+}

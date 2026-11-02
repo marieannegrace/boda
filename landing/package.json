@@ -16,6 +16,9 @@
     "qr:generate": "node scripts/generate-qr.mjs",
     "test:qr": "node --test tests/qr.test.mjs",
     "test:stories": "node --test tests/stories.test.mjs",
+    "test:media": "node --test tests/media-optimization.test.mjs",
+    "media:measure": "node scripts/measure-story-loading.mjs",
+    "media:prepare": "node scripts/prepare-story-av.mjs",
     "test:browser": "playwright test"
   },
   "dependencies": {

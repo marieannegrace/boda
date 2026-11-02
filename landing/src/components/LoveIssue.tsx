@@ -6,7 +6,9 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import type { StoriesContent, StorySlide, StoryPhoto as Photo } from "@/lib/stories";
 import { assetPath } from "@/lib/asset-path";
+import { photoSizes, photoSrcSet, prepareImage, prepareVideoStart } from "@/lib/story-preload";
 import { useHistoryJourney } from "./InvitationGate";
+import { BotanicalAtmosphere } from "./BotanicalAtmosphere";
 import styles from "./LoveIssue.module.css";
 
 gsap.registerPlugin(useGSAP);
@@ -23,25 +25,23 @@ function subscribeVisibility(callback: () => void) {
 }
 function subscribeSharing() { return () => {}; }
 
-function photoSrcSet(photo: Photo) {
-  return photo.variants.map((variant) => `${assetPath(variant.source)} ${variant.width}w`).join(", ");
-}
-
 function StoryPhoto({ source, alt, className, photo }: { source: string; alt: string; className: string; photo?: Photo }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   if (failed) return null;
   return (
     <figure className={className} data-photo-file={photo?.file} data-treatment={photo?.treatment ?? "editorial"}>
       <picture>
-        {photo ? <source srcSet={photoSrcSet(photo)} sizes="(min-width: 768px) 400px, 94vw" type="image/webp" /> : null}
-        <Image src={assetPath(source)} alt={alt} fill sizes="(min-width: 768px) 400px, 94vw"
+        {photo ? <source srcSet={photoSrcSet(photo)} sizes={photoSizes} type="image/webp" /> : null}
+        <Image src={assetPath(source)} alt={alt} fill sizes={photoSizes}
         style={{ objectFit: photo?.treatment === "hero" ? "cover" : "contain",
           objectPosition: `${photo?.focalPoint.x ?? 50}% ${photo?.focalPoint.y ?? 50}%` }}
-        loading="lazy" data-story-photo onError={() => {
+        loading="eager" data-story-photo onLoad={() => setLoaded(true)} onError={() => {
           console.error("Story image failed to load:", source);
           setFailed(true);
         }} />
       </picture>
+      {!loaded ? <span className={styles.imageLoading} data-image-loading role="status">El recuerdo está llegando…</span> : null}
     </figure>
   );
 }
@@ -144,6 +144,7 @@ function StoryPage({ content, slide, active = true, historyIndex = 0 }: {
 
 export default function LoveIssue({ content }: { content: StoriesContent }) {
   const [started, setStarted] = useState(false);
+  const [entryRequested, setEntryRequested] = useState(false);
   const [index, setIndex] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [videoIndex, setVideoIndex] = useState(0);
@@ -154,21 +155,29 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const [holding, setHolding] = useState(false);
   const [inView, setInView] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
-  const [videoIntent, setVideoIntent] = useState(false);
+  const [videoIntent, setVideoIntent] = useState(true);
+  const [videoBlocked, setVideoBlocked] = useState(false);
+  const [prepared, setPrepared] = useState<string[]>([]);
+  const [preparationFailed, setPreparationFailed] = useState(false);
   const [mediaState, setMediaState] = useState<"loading" | "ready" | "playing" | "error">("loading");
   const [notice, setNotice] = useState("");
   const [shareFallback, setShareFallback] = useState(false);
   const [localShareUrl, setLocalShareUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(false);
+  const [musicAttached, setMusicAttached] = useState(false);
   const [musicFailed, setMusicFailed] = useState(false);
   const [musicVolume, setMusicVolume] = useState(content.musicVolume);
   const [musicFallback, setMusicFallback] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [interaction, setInteraction] = useState(0);
-  const musicChoice = useRef(false);
+  const soundPreference = useRef<boolean | null>(null);
+  const musicPositioned = useRef(false);
+  const musicFadingIn = useRef(false);
+  const preparedVideos = useRef(new Set<string>());
+  const restoredSound = useRef<boolean | null>(null);
   const audioGraph = useRef<{ context: AudioContext; gain: GainNode } | null>(null);
   const musicPlayer = useRef<HTMLAudioElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -191,12 +200,98 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   const showVideo = videoActive && !specialIntro && mediaState !== "error";
   const last = index === content.slides.length - 1;
   const videoFailed = mediaState === "error";
-  const wantsVideo = !paused && (automatic || videoIntent);
+  const wantsVideo = !paused && videoIntent && !videoBlocked;
   const historyCount = content.historyPages.length;
   const inHistory = slide.id === "history";
   const musicDucked = showVideo && mediaState === "playing" && wantsVideo && !suspended;
   const effectiveVolume = musicEnabled ? musicVolume * (musicDucked ? 0.02 : 1) : 0;
   const musicSource = musicFallback ? content.musicFallback : content.music;
+  const firstPhoto = content.historyPages.find((page) => page.photos.length)?.photos[0] ?? content.momentPhoto;
+  const firstVideo = content.videos[0];
+  const essentialCount = 1 + (firstPhoto ? 1 : 0) + (musicSource ? 1 : 0)
+    + (firstVideo?.poster ? 1 : 0) + (firstVideo ? 1 : 0);
+  const coreReady = prepared.includes("cover") && (!firstPhoto || prepared.includes("photo"));
+
+  useEffect(() => {
+    if (!entryRequested || !coreReady || started) return;
+    const frame = requestAnimationFrame(() => setStarted(true));
+    return () => cancelAnimationFrame(frame);
+  }, [entryRequested, coreReady, started]);
+
+  function rememberSound(sound: boolean, volume = musicVolume) {
+    try { sessionStorage.setItem("love-issue-sound-v1", JSON.stringify({ sound, volume })); }
+    catch (error) { console.warn("Sound preference cannot be retained in this session:", error); }
+  }
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved: unknown = JSON.parse(sessionStorage.getItem("love-issue-sound-v1") ?? "null");
+        if (typeof saved === "object" && saved !== null && "sound" in saved && typeof saved.sound === "boolean"
+          && "volume" in saved && typeof saved.volume === "number" && saved.volume >= 0 && saved.volume <= 1) {
+          restoredSound.current = saved.sound;
+          soundPreference.current = saved.sound;
+          setMusicVolume(saved.volume);
+          setStarted(true);
+        }
+      } catch (error) { console.warn("Saved sound preference could not be read:", error); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
+    const controller = new AbortController();
+    const done = (key: string) => setPrepared((items) => items.includes(key) ? items : [...items, key]);
+    const failed = (error: unknown) => {
+      if (controller.signal.aborted) return;
+      console.error("Edition preparation failed:", error);
+      setPreparationFailed(true);
+    };
+    const typography = root.current?.querySelectorAll<HTMLElement>("[data-welcome] h3 > span, [data-welcome] p, [data-welcome] button") ?? [];
+    void Promise.all(Array.from(typography).map((element) => {
+      const style = getComputedStyle(element);
+      return document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`);
+    })).then(() => done("cover"), failed);
+    if (firstPhoto) void prepareImage(firstPhoto.source, controller.signal, firstPhoto).then(() => done("photo"), failed);
+    if (firstVideo?.poster) void prepareImage(firstVideo.poster, controller.signal).then(() => done("poster"), failed);
+    if (firstVideo && !preparedVideos.current.has(firstVideo.source)) {
+      preparedVideos.current.add(firstVideo.source);
+      void prepareVideoStart(firstVideo.source, controller.signal).then((supported) => {
+        if (supported) done("video");
+        else { preparedVideos.current.delete(firstVideo.source); setPreparationFailed(true); }
+      }, (error: unknown) => { preparedVideos.current.delete(firstVideo.source); failed(error); });
+    }
+    return () => controller.abort();
+  }, [inView, firstPhoto, firstVideo]);
+
+  useEffect(() => {
+    if (!inView || !started || showVideo) return;
+    const upcoming = specialIntro ? currentVideo : index >= 2 ? firstVideo : null;
+    if (!upcoming || preparedVideos.current.has(upcoming.source)) return;
+    const controller = new AbortController();
+    if (upcoming.poster) void prepareImage(upcoming.poster, controller.signal).catch((error: unknown) => {
+      if (!controller.signal.aborted) console.error("Upcoming message poster preparation failed:", error);
+    });
+    preparedVideos.current.add(upcoming.source);
+    void prepareVideoStart(upcoming.source, controller.signal).then((supported) => {
+      if (!supported) preparedVideos.current.delete(upcoming.source);
+    }, (error: unknown) => {
+      preparedVideos.current.delete(upcoming.source);
+      if (!controller.signal.aborted) console.error("Upcoming message preparation failed:", error);
+    });
+    return () => controller.abort();
+  }, [inView, started, showVideo, specialIntro, currentVideo, firstVideo, index]);
+
+  useEffect(() => {
+    if (!specialIntro || suspended) return;
+    const timer = window.setTimeout(() => {
+      setSpecialStarted(true);
+      setVideoIntent(true);
+      setMediaState("loading");
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [specialIntro, suspended]);
 
   function recordInteraction() {
     setHelpVisible(false);
@@ -222,14 +317,16 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
 
   const musicError = useCallback((error: unknown) => {
     if (error instanceof DOMException && error.name === "AbortError") return;
-    console.error("Story music playback failed:", error);
     if (error instanceof DOMException && error.name === "NotAllowedError") {
       setMusicEnabled(false);
-      setNotice("Pulsa Activar música para escuchar el acompañamiento.");
+      setNotice("Tu edición está lista. Pulsa Activar música para acompañarla con sonido.");
     } else if (content.musicFallback && !musicFallback) {
+      console.warn("Trying compatible story audio:", error);
+      musicPositioned.current = false;
       setMusicFallback(true);
       setNotice("La música usará el formato alternativo de este navegador.");
     } else {
+      console.error("Story music playback failed:", error);
       setMusicFailed(true);
       setMusicEnabled(false);
       setNotice("No se pudo cargar la música. Puedes continuar recorriendo la edición.");
@@ -240,10 +337,12 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     const audio = musicPlayer.current;
     if (!audio || !content.music || musicFailed) return;
     let source = musicSource;
-    if (source?.endsWith(".weba") && !audio.canPlayType('audio/webm; codecs="opus"')) {
-      if (!content.musicFallback) {
+    const audioType = (file: string) => file.endsWith(".weba") ? 'audio/webm; codecs="opus"'
+      : file.endsWith(".m4a") ? 'audio/mp4; codecs="mp4a.40.2"' : "audio/mpeg";
+    if (source && !audio.canPlayType(audioType(source))) {
+      if (!content.musicFallback || !audio.canPlayType(audioType(content.musicFallback))) {
         setMusicFailed(true);
-        setNotice("Este navegador no admite la música WEBA. Puedes recorrer la edición sin música.");
+        setNotice("Este navegador no admite el formato de la música. Puedes recorrer la edición sin música.");
         return;
       }
       setMusicFallback(true);
@@ -254,12 +353,16 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       if (!audioGraph.current) {
         const context = new AudioContext();
         const gain = context.createGain();
-        gain.gain.value = musicVolume;
+        gain.gain.value = 0;
         context.createMediaElementSource(audio).connect(gain).connect(context.destination);
         audioGraph.current = { context, gain };
       }
       void audioGraph.current.context.resume().catch(musicError);
       if (!audio.getAttribute("src")) audio.src = assetPath(source);
+      if (!musicPositioned.current && audio.readyState >= 1) {
+        audio.currentTime = Math.min(10, Math.max(0, audio.duration - 0.1));
+        musicPositioned.current = true;
+      }
       void audio.play().catch(musicError);
       setMusicEnabled(true);
     } catch (error) { musicError(error); }
@@ -275,23 +378,20 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   }, [effectiveVolume]);
 
   useEffect(() => {
-    if (!started || !inHistory) return;
-    const next = content.historyPages[historyIndex + 1]?.photos[0];
-    if (!next) return;
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "image";
-    link.href = assetPath(next.source);
-    link.imageSrcset = photoSrcSet(next);
-    link.imageSizes = "(min-width: 768px) 400px, 94vw";
-    document.head.append(link);
-    return () => link.remove();
-  }, [started, inHistory, historyIndex, content.historyPages]);
+    if (!started || !inView) return;
+    const next = inHistory ? content.historyPages[historyIndex + 1]?.photos ?? []
+      : index === 2 && content.momentPhoto ? [content.momentPhoto] : [];
+    const controller = new AbortController();
+    for (const photo of next) void prepareImage(photo.source, controller.signal, photo).catch((error: unknown) => {
+      if (!controller.signal.aborted) console.error("Upcoming photograph preparation failed:", error);
+    });
+    return () => controller.abort();
+  }, [started, inView, inHistory, historyIndex, index, content.historyPages, content.momentPhoto]);
 
   useEffect(() => {
     const audio = musicPlayer.current;
     if (!audio || musicFailed) return;
-    if (suspended || !started) {
+    if (suspended || (!started && !entryRequested)) {
       audio.pause();
       return;
     }
@@ -305,12 +405,16 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       musicError(error);
     });
     return () => { cancelled = true; };
-  }, [musicEnabled, musicFailed, suspended, started, musicFallback, musicError]);
+  }, [musicEnabled, musicFailed, suspended, started, entryRequested, musicFallback, musicError]);
 
   useEffect(() => {
     const container = root.current;
     if (!container) return;
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.3), { threshold: [0, 0.3] });
+    const observer = new IntersectionObserver(([entry]) => {
+      const active = entry.isIntersecting && entry.intersectionRatio >= 0.3;
+      setInView(active);
+      if (active) setMusicAttached(true);
+    }, { threshold: [0, 0.3] });
     observer.observe(screen.current ?? container);
     return () => observer.disconnect();
   }, []);
@@ -347,11 +451,21 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
   }, [showVideo, videoIndex, captionsEnabled]);
 
   useGSAP(() => {
-    if (!started || reduced) return;
-    const active = panels.current?.querySelector<HTMLElement>(`[data-story-id="${slide.id}"]`);
+    if (reduced) return;
+    const active = started ? panels.current?.querySelector<HTMLElement>(`[data-story-id="${slide.id}"]`)
+      : root.current?.querySelector<HTMLElement>("[data-welcome]");
     if (!active) return;
     const timeline = gsap.timeline({ paused: suspended });
     sequence.current = timeline;
+    const botanical = active.querySelectorAll("[data-botanical-motif]");
+    if (botanical.length) {
+      const desktop = matchMedia("(min-width: 960px) and (hover: hover) and (pointer: fine)").matches;
+      timeline.from(botanical, {
+        opacity: 0, y: (i) => desktop ? (i === 0 ? 6 : -4) : 0,
+        duration: 1.6, ease: "power3.out", stagger: 0.12,
+      }, 0);
+    }
+    if (!started) return () => { sequence.current = null; };
     if (slide.id === "cover") {
       timeline.from(active.querySelector("[data-story-texture]"), { opacity: 0, duration: 0.7 }, 0)
         .from(active.querySelector("[data-story-ornament]"), { opacity: 0, scale: 0.98, duration: 0.7, ease: "power3.out" }, 0.15);
@@ -377,15 +491,16 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     const video = player.current;
     if (!showVideo || !video || videoFailed) return;
     let cancelled = false;
-    if (suspended || (!automatic && !videoIntent)) video.pause();
+    if (suspended || !videoIntent || videoBlocked) video.pause();
     else {
       video.play().catch((error: unknown) => {
         if (cancelled || (error instanceof DOMException && error.name === "AbortError")) return;
-        setVideoIntent(false);
-        setPaused(true);
         if (error instanceof DOMException && error.name === "NotAllowedError" && !video.error) {
-          setNotice("La reproducción automática no está disponible. Pulsa Reproducir video para escuchar el mensaje.");
+          setVideoBlocked(true);
+          setMediaState("ready");
+          setNotice("Tu mensaje está listo. Pulsa Reproducir con sonido.");
         } else {
+          setVideoIntent(false);
           setMediaState("error");
           elapsed.current = 0;
           setNotice("El mensaje no pudo cargarse. Puedes reintentar o continuar a la invitación.");
@@ -393,7 +508,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       });
     }
     return () => { cancelled = true; video.pause(); };
-  }, [showVideo, videoIndex, suspended, automatic, videoIntent, videoFailed]);
+  }, [showVideo, videoIndex, suspended, videoIntent, videoBlocked, videoFailed]);
 
   useEffect(() => {
     if (!started || suspended || specialIntro || (!automatic && (!showVideo || mediaState !== "playing"))) return;
@@ -407,7 +522,8 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       if (showVideo) {
         progress = video && Number.isFinite(video.duration) && video.duration > 0 ? video.currentTime / video.duration : 0;
       } else if (automatic) {
-        elapsed.current += (now - previous) / 1000;
+        const photos = panels.current?.querySelectorAll<HTMLImageElement>(`[data-story-id="${slide.id}"] img`);
+        if (!photos || Array.from(photos).every((photo) => photo.complete)) elapsed.current += (now - previous) / 1000;
         progress = Math.min(1, elapsed.current / slide.duration);
         if (progress >= 1) {
           finished = true;
@@ -428,12 +544,14 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [index, historyIndex, historyCount, inHistory, started, suspended, automatic, showVideo, specialIntro, mediaState, slide.duration, last, journey, videoActive, videoIndex, content.videos.length]);
+  }, [index, historyIndex, historyCount, inHistory, started, suspended, automatic, showVideo, specialIntro, mediaState, slide.id, slide.duration, last, journey, videoActive, videoIndex, content.videos.length]);
 
   function go(next: number) {
     recordInteraction();
     const target = Math.max(0, Math.min(content.slides.length - 1, next));
     if (target === index) return;
+    player.current?.pause();
+    setVideoBlocked(false);
     if (specialIntro && next > index) {
       setSpecialStarted(true); setVideoIntent(true); setPaused(false); setMediaState("loading");
       return;
@@ -442,7 +560,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       elapsed.current = 0;
       setVideoIndex((value) => value + (next > index ? 1 : -1));
       setSpecialStarted(false);
-      setVideoIntent(false);
+      setVideoIntent(true);
       setMediaState("loading");
       setNotice("");
       return;
@@ -461,7 +579,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     setIndex(target);
     setVideoIndex(target === 4 && next < index ? Math.max(0, content.videos.length - 1) : 0);
     setSpecialStarted(false);
-    setVideoIntent(false);
+    setVideoIntent(true);
     setMediaState("loading");
     for (const [i, bar] of bars.current.entries()) {
       if (bar) bar.style.transform = `scaleX(${i < target ? 1 : i === target && target === 1 ? nextHistory / historyCount : 0})`;
@@ -471,14 +589,38 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
     if (panels.current?.contains(document.activeElement)) screen.current?.focus({ preventScroll: true });
   }
 
-  function begin() {
+  function begin(sound: boolean) {
     recordInteraction();
-    setStarted(true);
+    setEntryRequested(true);
+    if (coreReady) setStarted(true);
     setPaused(false);
     if (reduced) setAutomaticChoice(false);
     screen.current?.focus({ preventScroll: true });
     screen.current?.scrollIntoView({ behavior: "instant", block: "start" });
-    if (!musicChoice.current) activateMusic();
+    soundPreference.current = sound;
+    rememberSound(sound);
+    if (sound) activateMusic();
+    else setMusicEnabled(false);
+  }
+
+  function playWithSound() {
+    setMuted(false);
+    setVideoBlocked(false);
+    setVideoIntent(true);
+    setPaused(false);
+    setKeyboardFocus(false);
+    if (musicEnabled && audioGraph.current) void audioGraph.current.context.resume().catch(musicError);
+    else if (soundPreference.current && !musicFailed) activateMusic();
+    const video = player.current;
+    if (video) {
+      video.muted = false;
+      void video.play().catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          setVideoBlocked(true);
+          setNotice("Pulsa otra vez Reproducir con sonido para escuchar el mensaje.");
+        } else if (!(error instanceof DOMException && error.name === "AbortError")) mediaFailed();
+      });
+    }
   }
 
   function mediaFailed() {
@@ -549,10 +691,33 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       data-video-index={videoIndex} data-video-count={content.videos.length}
       data-music-volume={musicVolume} data-music-effective-volume={effectiveVolume}
       data-automatic={automatic} data-suspended={suspended} data-holding={holding}
+      data-prepared={prepared.length} data-essential-count={essentialCount}
       onClickCapture={recordInteraction} onKeyDownCapture={recordInteraction}>
-      {content.music && !musicFailed ? <audio ref={musicPlayer} src={started && musicSource ? assetPath(musicSource) : undefined}
-        loop preload="none" onError={() => {
+      {content.music && !musicFailed ? <audio ref={musicPlayer} src={musicAttached && musicSource ? assetPath(musicSource) : undefined}
+        loop preload={musicAttached ? "auto" : "none"} onLoadedMetadata={(event) => {
+          const audio = event.currentTarget;
+          if (!musicPositioned.current && Number.isFinite(audio.duration)) {
+            audio.currentTime = Math.min(10, Math.max(0, audio.duration - 0.1));
+            musicPositioned.current = true;
+          }
+        }} onCanPlay={() => {
+          setPrepared((items) => items.includes("music") ? items : [...items, "music"]);
+          if (restoredSound.current !== null) {
+            const sound = restoredSound.current;
+            restoredSound.current = null;
+            if (sound) activateMusic();
+          }
+        }} onPlaying={() => {
+          const graph = audioGraph.current;
+          if (!graph || musicFadingIn.current) return;
+          musicFadingIn.current = true;
+          const now = graph.context.currentTime;
+          graph.gain.gain.cancelScheduledValues(now);
+          graph.gain.gain.setValueAtTime(0, now);
+          graph.gain.gain.linearRampToValueAtTime(effectiveVolume, now + 1.6);
+        }} onError={() => {
           if (content.musicFallback && !musicFallback) {
+            musicPositioned.current = false;
             setMusicFallback(true);
             setNotice("La música usará el formato alternativo de este navegador.");
             return;
@@ -574,7 +739,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
           if (event.target instanceof HTMLElement && event.target.closest("button, a, input")) return;
           if (event.key === "ArrowRight") { event.preventDefault(); go(index + 1); }
           if (event.key === "ArrowLeft") { event.preventDefault(); go(index - 1); }
-          if (event.key === " ") { event.preventDefault(); if (!started) begin(); else setPaused((value) => !value); }
+          if (event.key === " ") { event.preventDefault(); if (!started) begin(true); else setPaused((value) => !value); }
         }}
         onFocusCapture={(event) => {
           if (event.target === screen.current) setKeyboardFocus(false);
@@ -594,10 +759,11 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
             </ol>
             <div className={styles.topLine}>
               <span>{content.title}</span>
-              {content.music && !musicFailed ? <button className={styles.musicButton} aria-label={musicEnabled ? "Silenciar música" : "Activar música"}
+              {started && content.music && !musicFailed ? <button className={styles.musicButton} aria-label={musicEnabled ? "Silenciar música" : "Activar música"}
                 aria-pressed={musicEnabled} onClick={() => {
-                  musicChoice.current = true;
+                  soundPreference.current = !musicEnabled;
                   if (!started) { setStarted(true); screen.current?.focus({ preventScroll: true }); }
+                  rememberSound(!musicEnabled);
                   if (musicEnabled) setMusicEnabled(false);
                   else activateMusic();
                 }}>{musicEnabled ? "Silenciar música" : "Activar música"}</button> : null}
@@ -630,10 +796,30 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
             onLostPointerCapture={(event) => {
               if (gesture.current?.id === event.pointerId) { gesture.current = null; setHolding(false); }
             }}>
-            <div ref={panels} className={styles.pages}>
+            {!started ? <div className={styles.welcome} data-welcome>
+              <BotanicalAtmosphere scene="welcome" />
+              <p className={styles.special}>Una edición para ustedes</p>
+              <h3 className={styles.masthead}>{content.title.split(" ").map((word, i) => <span key={i}>{word}</span>)}</h3>
+              <p className={styles.welcomeRecipient}>Para {content.recipient}</p>
+              <span className={styles.rule} aria-hidden="true" />
+              <p>Los recuerdos tienen su propia música.</p>
+              <div className={styles.preparation}>
+                <progress aria-label="Preparación de tu edición" value={prepared.length} max={essentialCount} />
+                <p role="status">{prepared.length === essentialCount ? "Tu edición está lista."
+                  : preparationFailed || musicFailed ? "Puedes entrar. Prepararemos el resto durante el recorrido."
+                  : "Preparando esta edición para ustedes"} <span>{prepared.length} / {essentialCount}</span></p>
+              </div>
+              <button className={styles.startButton} disabled={entryRequested} onClick={() => begin(true)}>Entrar con sonido</button>
+              <button className={styles.quietEntry} onClick={() => begin(false)}>Continuar sin música</button>
+              {entryRequested && !coreReady ? <button className={styles.quietEntry} onClick={() => setStarted(true)}>Entrar mientras carga</button> : null}
+            </div> : null}
+            <div ref={panels} className={styles.pages} hidden={!started}>
               {content.slides.map((item, i) => (
                 <article key={item.id} data-story-id={item.id} hidden={index !== i} inert={index !== i}
                   className={styles.page} aria-label={item.label}>
+                  {started && index === i && !showVideo ? <BotanicalAtmosphere
+                    scene={item.id === "history" && content.historyPages[historyIndex].kind === "photos" ? "photos" : item.id}
+                    alternate={item.id === "history" && historyIndex % 2 === 1} /> : null}
                   <span className={styles.paperTexture} data-story-texture aria-hidden="true" />
                   <span className={styles.cornerFrame} data-story-ornament aria-hidden="true"><i /><i /><i /><i /></span>
                   {item.id !== "message" || (!showVideo && !specialIntro) ? <StoryPage content={content} slide={item} active={started && index === i} historyIndex={historyIndex} /> : null}
@@ -648,7 +834,8 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                   {item.id === "message" && showVideo && currentVideo ? (
                     <div className={styles.videoStory}>
                       <video key={videoIndex} ref={player} src={assetPath(currentVideo.source)} muted={muted} playsInline
-                        preload="none" loop={false} poster={currentVideo.poster ? assetPath(currentVideo.poster) : undefined}
+                        data-original-video={currentVideo.originalSource ?? currentVideo.source}
+                        preload="auto" loop={false} poster={currentVideo.poster ? assetPath(currentVideo.poster) : undefined}
                         aria-label={`${currentVideo.kind === "special" ? "Segundo mensaje" : "Mensaje de invitación"} de ${content.couple}`}
                         onLoadedMetadata={() => setMediaState("ready")}
                         onPlaying={() => { setMediaState("playing"); setNotice(""); }}
@@ -667,7 +854,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                         <div className={styles.videoControls}>
                           <button onClick={() => {
                             if (wantsVideo) { setVideoIntent(false); setPaused(true); }
-                            else { setVideoIntent(true); setPaused(false); }
+                            else playWithSound();
                           }}
                             aria-label={wantsVideo ? "Pausar video" : "Reproducir video"}>
                             {wantsVideo ? "Pausar video" : "Reproducir video"}
@@ -680,9 +867,8 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                         </div>
                         {wantsVideo && mediaState === "loading" ? <p role="status">Cargando el mensaje…</p> : null}
                       </div>
-                      {!wantsVideo ? <button className={styles.playOverlay} onClick={() => {
-                        setVideoIntent(true); setPaused(false);
-                      }}><span aria-hidden="true">▷</span>Reproducir video</button> : null}
+                      {!wantsVideo ? <button className={styles.playOverlay} onClick={playWithSound}>
+                        <span aria-hidden="true">▷</span>{videoBlocked ? "Reproducir con sonido" : "Reproducir video"}</button> : null}
                     </div>
                   ) : null}
                   {item.id === "message" && videoFailed ? <button className={styles.retryButton} onClick={() => {
@@ -702,13 +888,13 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                 <button onClick={nativeSharing ? share : copy}>{nativeSharing ? "Compartir" : "Copiar enlace"}</button>
               </div>
             ) : null}
-            {!started ? <button className={styles.startButton} onClick={begin}>Abrir mi edición</button> : (
+            {started ? (
               <div className={styles.navigation}>
                 <button aria-label="Historia anterior" disabled={index === 0} onClick={() => go(index - 1)}>‹ Anterior</button>
                 <button aria-label={paused ? "Continuar stories" : "Pausar stories"} onClick={() => setPaused((value) => !value)}>{paused ? "Reanudar" : "Pausar"}</button>
                 <button aria-label="Historia siguiente" disabled={last} onClick={() => go(index + 1)}>{inHistory && historyIndex === historyCount - 1 ? "Continuar" : "Siguiente"} ›</button>
               </div>
-            )}
+            ) : null}
             {started ? <p className={styles.pagePosition} aria-live="polite" aria-atomic="true">{inHistory ? `Recuerdos: página ${historyIndex + 1} de ${historyCount}`
               : specialIntro ? `Mensaje ${videoIndex + 1} de ${content.videos.length}`
               : `${index + 1} / ${content.slides.length} · ${slide.label}`}</p> : null}
@@ -718,17 +904,21 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
               <svg className={styles.helpHand} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M18 29V10a3 3 0 0 1 6 0v13-7a3 3 0 0 1 6 0v8-5a3 3 0 0 1 6 0v9-4a3 3 0 0 1 6 0v9c0 8-5 12-12 12h-2c-4 0-7-2-9-5l-8-10a3 3 0 0 1 5-4l6 7" />
               </svg>
-              <p>{!started ? "Pulsa Abrir mi edición para comenzar."
+              <p>{!started ? "Pulsa Entrar con sonido. Si prefieres, puedes continuar sin música."
                 : last ? "Terminaste. Pulsa Ver la invitación para continuar."
                 : specialIntro ? "Pulsa Reproducir segundo mensaje."
-                : showVideo ? wantsVideo ? "Pulsa Escuchar video para oír la voz. Puedes pausar cuando quieras." : "Pulsa Reproducir video para comenzar."
+                : showVideo ? wantsVideo ? "Puedes pausar el mensaje cuando quieras." : videoBlocked ? "Pulsa Reproducir con sonido para escuchar el mensaje." : "Pulsa Reproducir video para comenzar."
                 : paused ? "Pulsa Reanudar cuando quieras seguir."
                 : "Pulsa Siguiente para avanzar. Anterior te permite volver. También puedes deslizar."}</p>
             </div> : null}
-      <div className={styles.readerControls}>
+      <div className={styles.readerControls} hidden={!started}>
         {content.music && !musicFailed ? <label className={styles.volumeControl}>Volumen de música
           <input type="range" min="0" max="100" step="1" value={Math.round(musicVolume * 100)}
-            onChange={(event) => setMusicVolume(Number(event.target.value) / 100)} />
+            onChange={(event) => {
+              const volume = Number(event.target.value) / 100;
+              setMusicVolume(volume);
+              rememberSound(musicEnabled, volume);
+            }} />
           <output>{Math.round(musicVolume * 100)}%</output>
         </label> : null}
         <label><input type="checkbox" checked={automatic} disabled={reduced}
@@ -749,7 +939,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
       {videoActive && currentVideo?.transcript ? <details className={styles.transcript}><summary>Leer el mensaje</summary><p>{currentVideo.transcript}</p></details> : null}
       </div>
       <noscript>
-        <style>{'[data-love-issue] > [role="region"] { display: none; }'}</style>
+        <style>{'[data-love-issue] > [role="region"], [data-love-issue] [data-image-loading] { display: none; }'}</style>
         <div className={styles.staticEdition}>
           <p>Tu edición en formato de lectura, sin reproducción automática.</p>
           {content.slides.map((item) => (

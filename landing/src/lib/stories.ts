@@ -25,6 +25,7 @@ export interface HistoryPage {
 
 export interface StoryVideo {
   source: string;
+  originalSource?: string;
   poster: string | null;
   captions: string | null;
   transcript: string | null;

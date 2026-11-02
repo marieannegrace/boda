@@ -43,6 +43,7 @@ jobs:
           npm run test:stories
           npm run build
           npm run typecheck
+          npm run test:media
       - uses: actions/upload-pages-artifact@v3
         with:
           path: landing/out

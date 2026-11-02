@@ -2,6 +2,9 @@ import { test, expect, type Page } from "@playwright/test";
 import guests from "../../src/data/guests.json";
 import { goToStory } from "./story-navigation";
 import path from "node:path";
+import { readFileSync } from "node:fs";
+
+const optimized: { videos: { original: string; source: string }[] } = JSON.parse(readFileSync("public/media/catalog.json", "utf8"));
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 async function open(page: Page, slug = "giovanna") {
@@ -9,7 +12,7 @@ async function open(page: Page, slug = "giovanna") {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${base}/${slug}/lectura/`);
   const issue = page.locator("[data-love-issue]");
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
   return issue;
 }
 
@@ -19,7 +22,7 @@ for (const guest of Object.values(guests).filter((guest) => guest.slug !== "defa
     const requests: string[] = [];
     page.on("request", (request) => { if (/\.mp4/i.test(request.url())) requests.push(decodeURIComponent(request.url())); });
     const issue = await open(page, guest.slug);
-    expect(requests).toEqual([]);
+    expect(requests.length).toBeLessThanOrEqual(1);
     await expect(page.locator("[data-history-content]")).toBeHidden();
     await page.getByRole("link", { name: "Confirmar", exact: true }).click();
     await expect(page.locator("[data-history-content]")).toBeHidden();
@@ -43,12 +46,10 @@ for (const guest of Object.values(guests).filter((guest) => guest.slug !== "defa
         await expect(issue.locator("video")).toHaveCount(0);
         await expect(issue).not.toContainText(/padrin|madrin/i);
         await issue.getByRole("button", { name: "Reproducir segundo mensaje", exact: true }).click();
-      } else {
-        await expect(issue.getByRole("button", { name: "Reproducir video", exact: true }).first()).toBeVisible();
-        await issue.getByRole("button", { name: "Reproducir video", exact: true }).first().click();
       }
       const video = issue.locator("video");
-      await expect(video).toHaveAttribute("src", `${base}/videos/${expected[n]}`);
+      await expect(video).toHaveAttribute("data-original-video", `/videos/${expected[n]}`);
+      await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(false);
       await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.1);
       expect(await video.evaluate((v) => getComputedStyle(v).objectFit)).toBe("contain");
       await video.evaluate((v: HTMLVideoElement) => { v.currentTime = v.duration - 0.3; });
@@ -58,7 +59,8 @@ for (const guest of Object.values(guests).filter((guest) => guest.slug !== "defa
         await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.ended), { timeout: 10000 }).toBe(true);
       }
     }
-    expect(requests.every((url) => expected.some((name) => url.endsWith(`/videos/${name}`)))).toBe(true);
+    const sources = expected.map((name) => optimized.videos.find((item) => item.original === `/videos/${name}`)?.source ?? `/videos/${name}`);
+    expect(requests.every((url) => sources.some((source) => url.endsWith(source)))).toBe(true);
     expect(await page.locator("audio").count()).toBe(1);
     await goToStory(issue, 5);
     await issue.getByRole("link", { name: "Ver la invitación", exact: true }).click();
@@ -88,10 +90,9 @@ test("global WEBA audio: actual gain reaches 2%, ramps back, preserves user volu
   await expect.poll(gain).toBeCloseTo(0.4, 4);
   const time = await audio.evaluate((a: HTMLAudioElement) => a.currentTime);
   await goToStory(issue, 4);
-  await issue.getByRole("button", { name: "Reproducir video", exact: true }).first().click();
   await expect.poll(gain).toBeCloseTo(0.008, 4);
   expect(await audio.evaluate((a: HTMLAudioElement) => a.paused)).toBe(false);
-  await issue.getByRole("button", { name: "Escuchar video", exact: true }).click();
+  await issue.getByRole("button", { name: "Silenciar video", exact: true }).click();
   await expect.poll(gain).toBeCloseTo(0.008, 4);
   await issue.getByRole("button", { name: "Pausar video", exact: true }).click();
   await expect.poll(gain).toBeCloseTo(0.4, 4);
@@ -112,6 +113,7 @@ test("global WEBA audio: actual gain reaches 2%, ramps back, preserves user volu
   await expect.poll(() => audio.evaluate((a: HTMLAudioElement) => a.currentTime)).toBeGreaterThan(pausedAt);
   await expect.poll(gain).toBeCloseTo(0.4, 4);
   expect(await page.locator("audio").count()).toBe(1);
+  expect(await page.evaluate(() => (Reflect.get(window, "__musicGains") as GainNode[]).length)).toBe(1);
 });
 
 for (const width of [320, 430]) {
@@ -122,8 +124,8 @@ for (const width of [320, 430]) {
     await page.goto(`${base}/amparoyeduardo/lectura/`);
     const issue = page.locator("[data-love-issue]");
     await issue.scrollIntoViewIfNeeded();
-    await expect(issue.locator("[data-context-help]")).toContainText("Abrir mi edición", { timeout: 7000 });
-    await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
+    await expect(issue.locator("[data-context-help]")).toContainText("Entrar con sonido", { timeout: 7000 });
+    await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
     for (const name of ["Historia siguiente", "Historia anterior", "Pausar stories"]) {
       const rect = await issue.getByRole("button", { name, exact: true }).boundingBox();
       expect(rect?.height).toBeGreaterThanOrEqual(44);
@@ -157,10 +159,10 @@ test("autoplay restriction retains a simple music retry; unsupported WEBA report
   await expect(issue.getByRole("button", { name: "Activar música", exact: true })).toBeVisible();
   await issue.getByRole("button", { name: "Activar música", exact: true }).click();
   await expect.poll(() => issue.locator("audio").evaluate((a: HTMLAudioElement) => a.currentTime)).toBeGreaterThan(0.1);
-  await page.addInitScript(() => { HTMLMediaElement.prototype.canPlayType = () => ""; });
+  await page.addInitScript(() => { sessionStorage.clear(); HTMLMediaElement.prototype.canPlayType = () => ""; });
   await page.reload();
-  await issue.getByRole("button", { name: "Abrir mi edición", exact: true }).click();
-  await expect(issue).toContainText("no admite la música WEBA");
+  await issue.getByRole("button", { name: "Entrar con sonido", exact: true }).click();
+  await expect(issue).toContainText("no admite el formato de la música");
   await expect(issue.locator("audio")).toHaveCount(0);
 });
 
