@@ -434,18 +434,18 @@ Contrato de validación: objeto con schemaVersion admitido, campos requeridos no
 
 `event.json` mantiene nombres de pareja, fecha ISO `2026-12-07`, timezone `America/Bogota`, agenda, dress code, confirmación, email y datos de postboda; separarlo evita duplicar la misma agenda seis veces. Números de plaza/contactos o elegibilidad no se inventan. La elegibilidad no autentica: debe combinarse con la política real de acceso si existe confidencialidad.
 
-## 11. Arquitectura de los seis vídeos
+## 11. Arquitectura de los vídeos personalizados
 
-Se necesitan seis asociaciones invitado -> vídeo, no seis players montados. Estado actual: **0/6 archivos recibidos**.
+Hay **seis familias/slugs** y **siete archivos MP4** disponibles. Al snapshot de preproducción (1 de noviembre de 2026) no había vídeos; se añadieron los clips siguientes el 6 de noviembre. Hay mensajes para cuatro familias; no se inventan los pendientes ni se reutiliza el video de otra familia.
 
-| Slot de producción | Ruta/fuente propuesta | Estado |
-| --- | --- | --- |
-| 1, ejemplo Roberto | `/roberto` -> `/videos/roberto.mp4` | Ejemplo del brief; identidad final y archivo pendientes. |
-| 2, ejemplo Carlos | `/carlos` -> `/videos/carlos.mp4` | Ejemplo del brief; identidad final y archivo pendientes. |
-| 3, ejemplo Ana | `/ana` -> `/videos/ana.mp4` | Ejemplo del brief; identidad final y archivo pendientes. |
-| 4 | slug/fuente sin asignar | No inventar nombre ni reutilizar otro mensaje. |
-| 5 | slug/fuente sin asignar | No inventar nombre ni reutilizar otro mensaje. |
-| 6 | slug/fuente sin asignar | No inventar nombre ni reutilizar otro mensaje. |
+| Slug de la familia | Mensaje de invitación | Mensaje adicional | Estado |
+| --- | --- | --- | --- |
+| `/roberto` | `ROBERTO.mp4` | `ROBERTO 2.mp4` | Dos clips detectados por la convención existente; destinatarios por confirmar si se necesitan etiquetas distintas. |
+| `/mariayroberto` | `ROBERTO Y MARIA.mp4` | No disponible | Un clip. |
+| `/giovanna` | `GIOVANNA.mp4` | `GIOVANNA 2.mp4` | Dos clips detectados por la convención existente; destinatarios por confirmar si se necesitan etiquetas distintas. |
+| `/amparoyeduardo` | No disponible | No disponible | Sin MP4 recibido. |
+| `/mercedes` | No disponible | No disponible | Sin MP4 recibido. |
+| `/florisyabsalon` | `florisyabsalon.mp4` | `florisyabsalon 2.mp4` | Primero para Floris y Absalon; segundo para Charlotte. Configuración explícita en `guests.json`. |
 
 ### Ciclo de vida y carga
 

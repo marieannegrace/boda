@@ -82,6 +82,16 @@
     "seats": 3,
     "seatsPendingLabel": null,
     "video": "/videos/florisyabsalon.mp4",
+    "videoMessages": [
+      {
+        "source": "/videos/florisyabsalon.mp4",
+        "recipient": "los abuelos Floris y Absalon"
+      },
+      {
+        "source": "/videos/florisyabsalon 2.mp4",
+        "recipient": "Charlotte"
+      }
+    ],
     "poster": null,
     "captions": null,
     "transcript": null,

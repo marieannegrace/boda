@@ -31,6 +31,7 @@ export interface StoryVideo {
   transcript: string | null;
   personalized: boolean;
   kind: "invitation" | "special";
+  recipient?: string;
 }
 
 export interface StoriesContent {

@@ -102,6 +102,42 @@
       "posterBytes": 24162,
       "posterWidth": 540,
       "posterHeight": 960
+    },
+    {
+      "original": "/videos/florisyabsalon 2.mp4",
+      "originalSha256": "c5668f827c7139f595dc2d9b7be65cb1677f2643bd44a98da7b44b6588f743b6",
+      "source": "/media/d1f93e577abd5bbab69ac7b2.mp4",
+      "poster": "/media/071bcf92352c7497a0fc7eff.webp",
+      "originalBytes": 46166309,
+      "bytes": 4243937,
+      "duration": 17.813188,
+      "width": 540,
+      "height": 960,
+      "originalDuration": 17.828292,
+      "originalWidth": 1920,
+      "originalHeight": 1080,
+      "sha256": "ddf994d28291f01e5f4bbff12a27e51d0d1679eeb65009dfb9af54389c9ca61c",
+      "posterBytes": 55464,
+      "posterWidth": 540,
+      "posterHeight": 960
+    },
+    {
+      "original": "/videos/florisyabsalon.mp4",
+      "originalSha256": "3eed84d21af35d5fd5825313f5b4474d8460ac2e6f928118acbd03233f2da7a9",
+      "source": "/media/36c63f57392cf57395640a49.mp4",
+      "poster": "/media/3801287918b40ee8873b9fc3.webp",
+      "originalBytes": 9529634,
+      "bytes": 4285963,
+      "duration": 17.533333,
+      "width": 540,
+      "height": 960,
+      "originalDuration": 17.529644,
+      "originalWidth": 1280,
+      "originalHeight": 720,
+      "sha256": "8590a7a8821a9b2988e77f15bcefab03ec871a1dbd7afbbce306b44f869580fb",
+      "posterBytes": 30922,
+      "posterWidth": 540,
+      "posterHeight": 960
     }
   ],
   "music": {

@@ -37,18 +37,24 @@ for (const guest of Object.values(guests).filter((guest) => guest.slug !== "defa
     await expect(page.locator("[data-history-content]")).not.toHaveAttribute("hidden");
     const expected = guest.slug === "giovanna" ? ["GIOVANNA.mp4", "GIOVANNA 2.mp4"]
       : guest.slug === "roberto" ? ["ROBERTO.mp4", "ROBERTO 2.mp4"]
-      : guest.slug === "mariayroberto" ? ["ROBERTO Y MARIA.mp4"] : [];
+      : guest.slug === "mariayroberto" ? ["ROBERTO Y MARIA.mp4"]
+      : guest.slug === "florisyabsalon" ? ["florisyabsalon.mp4", "florisyabsalon 2.mp4"] : [];
     await expect(issue).toHaveAttribute("data-video-count", String(expected.length));
     await goToStory(issue, 4);
     for (let n = 0; n < expected.length; n++) {
       if (n) {
-        await expect(issue).toContainText("Hay algo más que queremos compartir contigo.");
+        await expect(issue).toContainText(guest.slug === "florisyabsalon"
+          ? "Un momento más, solo para Charlotte"
+          : "Hay algo más que queremos compartir contigo.");
         await expect(issue.locator("video")).toHaveCount(0);
         await expect(issue).not.toContainText(/padrin|madrin/i);
         await issue.getByRole("button", { name: "Reproducir segundo mensaje", exact: true }).click();
       }
       const video = issue.locator("video");
       await expect(video).toHaveAttribute("data-original-video", `/videos/${expected[n]}`);
+      if (guest.slug === "florisyabsalon") {
+        await expect(issue).toContainText(n === 0 ? "Para los abuelos Floris y Absalon" : "Para Charlotte");
+      }
       await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(false);
       await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.1);
       expect(await video.evaluate((v) => getComputedStyle(v).objectFit)).toBe("contain");

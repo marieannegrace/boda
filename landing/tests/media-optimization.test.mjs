@@ -19,10 +19,12 @@ function atomsOf(buffer) {
   return atoms;
 }
 
-test("all five real videos have distinct progressive H264/AAC derivatives and per-video posters", async () => {
-  assert.equal(catalog.videos.length, 5);
-  assert.equal(new Set(catalog.videos.map((video) => video.original)).size, 5);
-  assert.equal(new Set(catalog.videos.map((video) => video.poster)).size, 5);
+test("all seven real videos have distinct progressive H264/AAC derivatives and per-video posters", async () => {
+  assert.equal(catalog.videos.length, 7);
+  assert.equal(new Set(catalog.videos.map((video) => video.original)).size, 7);
+  assert.equal(new Set(catalog.videos.map((video) => video.poster)).size, 7);
+  assert.ok(catalog.videos.some((video) => video.original === "/videos/florisyabsalon.mp4"));
+  assert.ok(catalog.videos.some((video) => video.original === "/videos/florisyabsalon 2.mp4"));
   for (const video of catalog.videos) {
     assert.match(video.source, /^\/media\/[a-z0-9-]+\.mp4$/);
     const [original, optimized, poster] = await Promise.all([bytes(video.original), bytes(video.source), bytes(video.poster)]);

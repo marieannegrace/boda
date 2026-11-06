@@ -90,25 +90,28 @@ Pantalla completa usa la API nativa, incluye controles y acciones finales y perm
 ### Configurar contenido y medios
 
 - `src/data/stories.json`: textos compartidos, orden, tiempos, edición, foto general y `generalVideo/generalPoster/generalCaptions/generalTranscript`. Están en `null` hasta recibir medios reales.
-- `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `poster`, `captions`, `transcript`. No crear un segundo listado de familias.
+- `guests.json`: sigue siendo la única fuente de nombres, cupos y video personalizado. Usa sus campos `video`, `videoMessages`, `poster`, `captions`, `transcript`. `videoMessages` permite fijar, en orden, el archivo y destinatario de hasta dos clips; para Floris y Absalon identifica el primero para los abuelos y el segundo para Charlotte. No crear un segundo listado de familias.
 - Cada registro admite opcionalmente `stories: { "edition": "FAMILY EDITION", "photo": null, "photoAlt": "Descripción de la foto", "message": null }`. `message` reemplaza la despedida editorial. Estos overrides no obligan a modificar componentes.
-- `stories.server.ts`/`story-media.mjs` comprueban en build: videos del invitado → general → fotografía disponible → firma editorial. La detección reutiliza la clasificación de nombres existente, respeta mayúsculas/espacios del archivo real y permite uno o dos MP4 por edición, en orden numérico. Más de dos exige revisar el inventario y detiene el build, en lugar de omitir archivos. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
+- `stories.server.ts`/`story-media.mjs` comprueban en build: videos del invitado → general → fotografía disponible → firma editorial. La detección reutiliza la clasificación de nombres existente, respeta mayúsculas/espacios del archivo real y permite uno o dos MP4 por edición, en orden numérico. Para Floris/Absalon, la lista explícita de `videoMessages` fija tanto la fuente como el destinatario y excluye coincidencias no configuradas. Más de dos exige revisar el inventario y detiene el build, en lugar de omitir archivos. No mezclan poster/captions/transcript de otra familia. Los medios ausentes nunca generan mensajes de desarrollo ni elementos rotos. Errores de configuración/IO distintos de archivo ausente interrumpen el build.
 - Si existen `captions`, el botón **CC** permite activarlos/desactivarlos. `transcript` habilita **Leer el mensaje**. Sin esos datos no aparecen los controles.
 - El cliente recibe solo la edición actual. El video no se monta ni tiene `src` antes de la quinta página/inicio explícito; usa preload none, muted, playsInline, sonido y play/pausa discretos. Pausa/libera el recurso al salir y ofrece reintento/continuación ante fallos. Nunca solicita videos de otras familias.
 - Marcos, textura y ornamentos de borde están hechos con CSS. Portada y Family Edition incluyen `VOL. 01` y `NO. 001`; los metadatos usan sans-serif y los titulares serif. El formato vertical permanece centrado en desktop. Las fotos reales reciben un tratamiento cálido leve, sin parallax móvil.
 
 ### Subir medios sin modificar componentes
 
-Las carpetas ya existen dentro de `public/`. Los 45 archivos reales recibidos en `public/posters/`, los cinco MP4 y el WEBA se conservan byte a byte. Inventario actual:
+Las carpetas ya existen dentro de `public/`. Los 45 archivos reales recibidos en `public/posters/`, los siete MP4 originales y el WEBA se conservan byte a byte. Inventario actual:
 
 | Edición | Mensaje de invitación | Segundo mensaje |
 | --- | --- | --- |
 | `/giovanna/` | `GIOVANNA.mp4` | `GIOVANNA 2.mp4` |
 | `/roberto/` | `ROBERTO.mp4` | `ROBERTO 2.mp4` |
 | `/mariayroberto/` | `ROBERTO Y MARIA.mp4` | No existe |
-| Otras tres ediciones | Sin MP4 recibido; fotografía editorial | No existe |
+| `/florisyabsalon/` | `florisyabsalon.mp4`, para Floris y Absalon | `florisyabsalon 2.mp4`, para Charlotte |
+| Otras dos ediciones | Sin MP4 recibido; fotografía editorial | No existe |
 
-La asignación y el significado de los archivos «2» fueron confirmados por el usuario. No se inventan los videos que faltan ni se reutiliza el de otra familia.
+La asignación y los destinatarios de los dos mensajes de Floris, Absalon y Charlotte fueron confirmados por el usuario. No se inventan los videos que faltan ni se reutiliza el de otra familia.
+
+Para `/florisyabsalon/`, `videoMessages` en `guests.json` fija las rutas y destinatarios en orden. El player presenta el segundo mensaje a Charlotte con su nombre antes de que el invitado lo reproduzca; no usa una coincidencia automática de archivos para elegir mensajes adicionales de esta edición.
 
 | Carpeta física | Nombre que se detecta automáticamente | Uso |
 | --- | --- | --- |
@@ -211,7 +214,7 @@ Las pruebas cubren los seis destinatarios/segmentos, pausa/gestos/touch real por
 
 `stories-media.spec.ts` se ejecuta aparte con `STORIES_MEDIA_FIXTURE=1` y un build local sobre la edición pública: MP4 sintético 9:16 de 7 s, poster, VTT y MP3 silencioso (`tests/create-story-fixture.mjs`). Verifica duración/ended, sonido, pausa, CC/transcripción, fallos de video/foto, música continua con atenuación, restauración y bloqueo de autoplay. Configurar temporalmente `generalVideo`, `generalPoster`, `generalCaptions`, `generalTranscript` y `music` con esos recursos. Nunca publicar ese build ni sus archivos: restaurar configuración, borrar los cuatro archivos de fixture y reconstruir antes del push. Los medios sintéticos no forman parte de la invitación entregada.
 
-La evidencia de navegador comprueba reproducción de los cinco MP4 optimizados, la copia AAC y el fallback del WEBA, pero no reemplaza QA ni escucha en iOS/Android físicos. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen. [PERFORMANCE-AUDIT.md](PERFORMANCE-AUDIT.md) documenta condiciones de red/CPU, tiempos, memoria y límites. `npm run media:measure` permite repetir la medición local; admite `BETA_URL`, `MEASUREMENT_SLUG`, `MEASUREMENT_PROFILES` y `MEASUREMENT_OUTPUT`.
+La evidencia E2E del 6 de noviembre de 2026 comprueba los dos videos de `/florisyabsalon/`, su orden y sus destinatarios en Edge/Chromium. La suite audiovisual cubre los siete MP4 optimizados, la copia AAC y el fallback del WEBA, pero no reemplaza QA ni escucha en iOS/Android físicos. Las seis rutas, invitados, cupos, 15 escenas y el formato de seis segmentos se mantienen. [PERFORMANCE-AUDIT.md](PERFORMANCE-AUDIT.md) documenta condiciones de red/CPU, tiempos, memoria y límites. `npm run media:measure` permite repetir la medición local; admite `BETA_URL`, `MEASUREMENT_SLUG`, `MEASUREMENT_PROFILES` y `MEASUREMENT_OUTPUT`.
 
 ## Recorrido y función narrativa
 

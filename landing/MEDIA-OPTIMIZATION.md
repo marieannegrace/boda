@@ -1,8 +1,9 @@
 # Local media optimization inventory
 
-Prepared 2026-11-02. All processing was local. No supplied original was edited,
-renamed, deleted, or uploaded. The 45 photo masters, five MP4s, and one WEBA
-were SHA-256 hashed before processing and rehashed afterward: **51/51 match**.
+Prepared 2026-11-02; updated 2026-11-06 for the two Floris/Absalon videos. All
+processing was local. No supplied original was edited, renamed, deleted, or
+uploaded. The 45 photo masters, seven MP4s, and one WEBA were SHA-256 hashed
+before processing and rehashed afterward: **53/53 match**.
 Full original hashes are recorded per file in
 `public/images/stories/inventory.json` and `public/media/inventory.json`.
 
@@ -14,9 +15,9 @@ These are whole-library totals, **not one guest's page weight**.
 | Asset set | Before | After | Change |
 | --- | ---: | ---: | --- |
 | Photo responsive derivatives | 8,786,730, 115 WebPs | 6,076,896, 119 WebPs | 30.8% smaller |
-| Five videos | 67,488,629 | 13,275,096 | 80.3% smaller |
+| Seven videos | 123,184,572 | 21,804,996 | 82.3% smaller |
 | Music | 5,376,355 | 3,848,204 | 28.4% smaller |
-| Five new matching video posters | None as a complete per-video set | 121,810 | Additional assets |
+| Seven matching video posters | None as a complete per-video set | 208,196 | Additional assets |
 
 Photo masters total 8,152,275 bytes. Selecting just the largest derivative of
 each photo totals 3,837,430 bytes, 52.9% below the masters. The largest individual
@@ -167,8 +168,12 @@ download. Exact hashed filenames and full original SHA-256 values are in
 
 ## Every video, poster, and music file
 
-Every original video is 720×1280; every optimized video/poster is 540×960.
-All video durations below are unchanged to the reported precision.
+The five masters processed in the original review are 720×1280. The two
+Floris/Absalon masters are encoded 1280×720 and 1920×1080 with a 90-degree
+display-matrix rotation; FFmpeg auto-rotation preserves their portrait display.
+All seven optimized videos/posters are 540×960. Durations below are measured
+from the optimized files; source-to-derivative timing differences are under
+0.02 seconds with no intentional trim.
 
 | Original in `public/videos` | Original bytes | MP4 bytes | Duration (s) | Poster bytes | Full-video SSIM |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -177,6 +182,8 @@ All video durations below are unchanged to the reported precision.
 | `ROBERTO 2.mp4` | 20837296 | 3980329 | 50.730667 | 24844 | 0.992410 |
 | `ROBERTO Y MARIA.mp4` | 12721165 | 2527603 | 32.213333 | 24460 | 0.992368 |
 | `ROBERTO.mp4` | 13811914 | 2712631 | 35.754667 | 24162 | 0.992689 |
+| `florisyabsalon.mp4` | 9529634 | 4285963 | 17.533333 | 30922 | Not measured |
+| `florisyabsalon 2.mp4` | 46166309 | 4243937 | 17.813188 | 55464 | Not measured |
 
 Hashed output paths, relative to `public/media`:
 
@@ -187,6 +194,8 @@ Hashed output paths, relative to `public/media`:
 | `ROBERTO 2.mp4` | `76a9f7f2c4f17ca71e63e86c.mp4` | `bad1d2e829aaf990441b5543.webp` |
 | `ROBERTO Y MARIA.mp4` | `5d4106fb15235f2f47e02fc2.mp4` | `857af8c3fae46740dc356d04.webp` |
 | `ROBERTO.mp4` | `8b9240e49bb6d081012dad1f.mp4` | `d8640a29db822dd07241f59c.webp` |
+| `florisyabsalon.mp4` | `36c63f57392cf57395640a49.mp4` | `3801287918b40ee8873b9fc3.webp` |
+| `florisyabsalon 2.mp4` | `d1f93e577abd5bbab69ac7b2.mp4` | `071bcf92352c7497a0fc7eff.webp` |
 
 Music original: `public/audio/videoplayback.weba`, Opus stereo 48 kHz,
 5,376,355 bytes, 320.761 s. Derivative:
@@ -196,9 +205,8 @@ is a container/codec timing difference; no intentional trim was applied.
 
 ## Individual 540×960 versus native 720×1280 evaluation
 
-The initial 960-pixel longest-edge cap produced 540×960 for every file because
-all five actual masters are 720×1280, not because landscape/portrait orientation
-was ignored. A follow-up encoded **each complete original separately** at native
+The initial 960-pixel longest-edge cap produced 540×960 for the five original
+masters because all five are 720×1280. A follow-up encoded **each complete original separately** at native
 720×1280, CRF 22, slow preset, with exactly the same 128 kbit/s AAC settings and
 fast-start as its 540×960 counterpart. Native 720 was not upscaled. Candidates
 were kept outside public assets while comparing; no running build/export was
@@ -235,6 +243,13 @@ Full-duration SSIM compares each candidate with its own original, scaling
 **both** to the named raster width and preserving aspect ratio. Values are
 `540 candidate / 720 candidate`; a higher value is better. These objective
 differences support comparison but do not define a perceptual pass threshold.
+
+The native-720 comparison and SSIM table below cover only the five videos in
+the original review. The two added files have verified codecs, dimensions,
+poster generation, checksums and full decodes; their full-video SSIM and motion
+quality have not been evaluated. Their matching posters were visually checked
+for orientation and framing. The `Not measured` table entries deliberately do
+not imply a perceptual-quality score.
 
 | File | 390px width | 540px width | 720px width |
 | --- | --- | --- | --- |

@@ -9,6 +9,7 @@ export interface Guest {
   seats: number | null;
   seatsPendingLabel: string | null;
   video: string | null;
+  videoMessages?: { source: string; recipient: string }[];
   poster: string | null;
   captions: string | null;
   transcript: string | null;
@@ -54,6 +55,20 @@ function validateGuest(guest: Guest, key: string) {
   ] as const) {
     if (value !== null && !pattern.test(value)) {
       throw new Error(`Invalid media path in configuration: ${key}`);
+    }
+  }
+  if (guest.videoMessages !== undefined) {
+    if (!Array.isArray(guest.videoMessages) || guest.videoMessages.length < 1 || guest.videoMessages.length > 2) {
+      throw new Error(`Invalid videoMessages in configuration: ${key}`);
+    }
+    const sources = new Set<string>();
+    for (const message of guest.videoMessages) {
+      if (!message || typeof message.source !== "string" || !/^\/videos\/[a-zA-Z0-9_ -]+\.mp4$/i.test(message.source)
+        || sources.has(message.source) || typeof message.recipient !== "string"
+        || !message.recipient.trim() || message.recipient.length > 200) {
+        throw new Error(`Invalid video message in configuration: ${key}`);
+      }
+      sources.add(message.source);
     }
   }
   for (const dimension of [guest.videoWidth, guest.videoHeight]) {

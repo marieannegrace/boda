@@ -78,11 +78,14 @@ test("actual one/two-video filenames resolve consistently with case and spaces, 
     ["giovanna", ["GIOVANNA.mp4", "GIOVANNA 2.mp4"]],
     ["roberto", ["ROBERTO.mp4", "ROBERTO 2.mp4"]],
     ["mariayroberto", ["ROBERTO Y MARIA.mp4"]],
-    ["amparoyeduardo", []], ["mercedes", []], ["florisyabsalon", []], ["default", []],
+    ["amparoyeduardo", []], ["mercedes", []], ["florisyabsalon", ["florisyabsalon.mp4", "florisyabsalon 2.mp4"]], ["default", []],
   ]) {
     const videos = await resolveStoryVideos(guests[slug], config);
     assert.deepEqual(videos.map((video) => path.basename(video.source)), names);
     assert.deepEqual(videos.map((video) => video.kind), names.map((_, n) => n ? "special" : "invitation"));
+    if (slug === "florisyabsalon") {
+      assert.deepEqual(videos.map((video) => video.recipient), ["los abuelos Floris y Absalon", "Charlotte"]);
+    }
   }
 });
 

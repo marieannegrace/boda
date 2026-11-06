@@ -824,9 +824,9 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                   <span className={styles.cornerFrame} data-story-ornament aria-hidden="true"><i /><i /><i /><i /></span>
                   {item.id !== "message" || (!showVideo && !specialIntro) ? <StoryPage content={content} slide={item} active={started && index === i} historyIndex={historyIndex} /> : null}
                   {item.id === "message" && specialIntro ? <div className={styles.specialIntroduction}>
-                    <p className={styles.historyLabel}>Un momento más, solo para ti</p>
+                    <p className={styles.historyLabel}>Un momento más, solo para {currentVideo.recipient ?? content.recipient}</p>
                     <h3>Hay algo más que queremos compartir contigo.</h3>
-                    <p>Un segundo mensaje de Luis &amp; Marie.</p>
+                    <p>Un mensaje especial de Luis &amp; Marie.</p>
                     <button className={styles.startButton} onClick={() => {
                       setSpecialStarted(true); setVideoIntent(true); setPaused(false); setMediaState("loading");
                     }}>Reproducir segundo mensaje</button>
@@ -836,7 +836,7 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                       <video key={videoIndex} ref={player} src={assetPath(currentVideo.source)} muted={muted} playsInline
                         data-original-video={currentVideo.originalSource ?? currentVideo.source}
                         preload="auto" loop={false} poster={currentVideo.poster ? assetPath(currentVideo.poster) : undefined}
-                        aria-label={`${currentVideo.kind === "special" ? "Segundo mensaje" : "Mensaje de invitación"} de ${content.couple}`}
+                        aria-label={`${currentVideo.kind === "special" ? "Mensaje especial" : "Mensaje de invitación"} para ${currentVideo.recipient ?? content.recipient}, de ${content.couple}`}
                         onLoadedMetadata={() => setMediaState("ready")}
                         onPlaying={() => { setMediaState("playing"); setNotice(""); }}
                         onWaiting={() => setMediaState("loading")}
@@ -850,7 +850,8 @@ export default function LoveIssue({ content }: { content: StoriesContent }) {
                         {currentVideo.captions ? <track kind="captions" src={assetPath(currentVideo.captions)} srcLang="es" label="Español" default /> : null}
                       </video>
                       <div className={styles.videoCaption}>
-                        <p>{currentVideo.kind === "special" ? "Un segundo mensaje para ti" : `Para ${content.recipient}`} · Video {videoIndex + 1} de {content.videos.length}</p>
+                        <p>{currentVideo.recipient ? `Para ${currentVideo.recipient}`
+                          : currentVideo.kind === "special" ? "Un segundo mensaje para ti" : `Para ${content.recipient}`} · Video {videoIndex + 1} de {content.videos.length}</p>
                         <div className={styles.videoControls}>
                           <button onClick={() => {
                             if (wantsVideo) { setVideoIntent(false); setPaused(true); }

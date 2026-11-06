@@ -109,7 +109,7 @@ export async function resolveStoryImages(guest, config, publicRoot) {
 }
 
 /**
- * @param {{slug?: string, video: string | null, poster: string | null, captions: string | null, transcript: string | null}} guest
+ * @param {{slug?: string, video: string | null, videoMessages?: {source: string, recipient: string}[], poster: string | null, captions: string | null, transcript: string | null}} guest
  * @param {{generalVideo: string | null, generalPoster: string | null, generalCaptions: string | null, generalTranscript: string | null}} config
  * @param {string} [publicRoot]
  */
@@ -131,6 +131,24 @@ export async function resolveStoryVideo(guest, config, publicRoot) {
 }
 
 export async function resolveStoryVideos(guest, config, publicRoot = path.join(process.cwd(), "public")) {
+  if (guest.videoMessages?.length) {
+    const selected = await Promise.all(guest.videoMessages.map(async (message, index) => ({
+      ...message,
+      index,
+      source: await availableMedia(message.source, "video", publicRoot),
+    })));
+    return Promise.all(selected.filter((message) => message.source).map(async (message) => ({
+      source: message.source,
+      poster: message.index === 0 ? await firstAvailableMedia([
+        guest.poster, guest.slug && guest.slug !== "default" ? `/posters/${guest.slug}.jpg` : null,
+      ], "image", publicRoot) : null,
+      captions: message.index === 0 ? await availableMedia(guest.captions, "captions", publicRoot) : null,
+      transcript: message.index === 0 ? guest.transcript : null,
+      personalized: true,
+      kind: message.index ? "special" : "invitation",
+      recipient: message.recipient,
+    })));
+  }
   const first = await resolveStoryVideo(guest, config, publicRoot);
   let files;
   try { files = await readdir(path.join(publicRoot, "videos")); }

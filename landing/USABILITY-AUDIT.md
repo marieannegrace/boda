@@ -5,6 +5,13 @@ los derivados web y el autoplay audible se actualizan en
 [PERFORMANCE-AUDIT.md](PERFORMANCE-AUDIT.md); este documento conserva la
 evidencia y limitaciones de la auditoria anterior.
 
+Actualización 2026-11-06: se añadieron `florisyabsalon.mp4`, dirigido a Floris y
+Absalon, y `florisyabsalon 2.mp4`, dirigido a Charlotte. La prueba E2E de esa
+edición pasó con etiquetas específicas y clips ordenados; el inventario y los
+derivados actuales están en [MEDIA-OPTIMIZATION.md](MEDIA-OPTIMIZATION.md).
+Las tablas de inventario y resultados siguientes conservan la instantánea de
+la auditoría anterior a esos dos mensajes.
+
 ## Alcance y metodo
 
 V1 existente, seis segmentos y quince escenas, sin nuevas dependencias.
