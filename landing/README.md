@@ -13,6 +13,8 @@ El workflow [pages.yml](../.github/workflows/pages.yml) despliega cada push a `m
 
 `npm run build` genera los QR automáticamente mediante `prebuild` y exige una URL pública configurada cuyo subdirectorio coincida con `NEXT_PUBLIC_BASE_PATH`. Esto evita publicar un build con QR ausentes o enlaces que omitan `/boda`.
 
+Antes de subir el artefacto de Pages, el workflow valida el catálogo y los SHA-256 de los videos, conserva sus derivados optimizados y posters, y elimina de `out/videos/` únicamente las copias MP4 originales. Los masters se mantienen intactos en el repositorio, pero no se publican junto al sitio; así se evita transferir duplicados innecesarios durante el deployment.
+
 Pages no ejecuta Node/SSR ni endpoints dinámicos. Las rutas desconocidas muestran la experiencia completa del registro `default` mediante `404.html`, sin datos de otra familia ni redirección: conservan el estado HTTP 404 propio de Pages. Sin JavaScript, el formulario abre `/{slug}/lectura/#saludo` (o `/lectura/` para la invitación general); conserva el gesto explícito y no depende de query params ni servidor. Con JavaScript se mantiene la apertura física original, sin navegar.
 
 El repositorio y Pages son públicos: HTML, datos visibles, medios y QR son accesibles públicamente. Un slug y la lógica de postboda siguen sin ser autenticación. No subir videos privados a esta modalidad.

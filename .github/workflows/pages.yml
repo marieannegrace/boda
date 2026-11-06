@@ -44,6 +44,9 @@ jobs:
           npm run build
           npm run typecheck
           npm run test:media
+      - name: Exclude video masters from Pages artifact
+        working-directory: landing
+        run: node scripts/prune-pages-video-masters.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: landing/out

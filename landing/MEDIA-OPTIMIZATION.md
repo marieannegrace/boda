@@ -26,6 +26,14 @@ additional smaller responsive choice, so their aggregate variant bytes can
 increase even though their largest delivered image is smaller. All original
 photo masters and existing video/audio masters remain available.
 
+The static export initially measured 174,306,322 bytes because it contained both
+the seven original MP4 masters (123,184,572 bytes) and their optimized copies.
+The Pages workflow now validates the original SHA-256 values and each optimized
+catalog entry, then removes only those seven master copies from `out/videos/`
+before upload. The artifact therefore measures 51,121,750 bytes (70.7% smaller
+for this build); originals stay untouched under `public/videos/` in the Git repo.
+Captions and the optimized `/media/` MP4/poster pairs remain in the site artifact.
+
 ## Tools, settings, and regeneration
 
 - Existing Sharp 0.35.5, libvips 8.18.7, libwebp 1.6.0; no package changes.
